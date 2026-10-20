@@ -1062,6 +1062,7 @@ document.querySelectorAll('.dropdown-toggle').forEach(function(btn){
       return '<p>'+p.replace(/\n/g,'<br>').replace(/(https?:\/\/[^\s<]+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>')+'</p>';
     }).join('');
   }
+  function av(m){return /^https:\/\//.test(m.photo||'')?'<img src="'+esc(m.photo)+'" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover">':'<span>'+ini(m.name)+'</span>';}
   function pad(n){return n<10?'0'+n:''+n;}
 
   function render(d){
@@ -1115,14 +1116,14 @@ document.querySelectorAll('.dropdown-toggle').forEach(function(btn){
       var pg=$('#page-'+k);if(!pg)return;
       pg.classList.toggle('locked',!open);
       var grid=pg.querySelector('.member-grid');
-      if(grid)grid.innerHTML=mem.length?mem.map(function(m){return '<div class="member-card"><div class="shield-avatar"><span>'+ini(m.name)+'</span></div><h4>'+esc(m.name)+'</h4><span class="gen">'+esc(m.gen)+'</span></div>';}).join(''):'<p style="color:var(--ink-soft);">Belum ada member.</p>';
+      if(grid)grid.innerHTML=mem.length?mem.map(function(m){return '<div class="member-card"><div class="shield-avatar">'+av(m)+'</div><h4>'+esc(m.name)+'</h4><span class="gen">'+esc(m.gen)+'</span></div>';}).join(''):'<p style="color:var(--ink-soft);">Belum ada member.</p>';
       var st=pg.querySelector('.team-stats b');if(st)st.textContent=pad(mem.length);
     });
     var pm=$('#page-member');
     pm.classList.toggle('locked',!anyOpen);
     var shown=ms.filter(function(m){return t[m.team];});
     var mg=pm.querySelector('.member-grid');
-    if(mg)mg.innerHTML=shown.map(function(m){return '<div class="member-card '+esc(m.team)+'"><div class="shield-avatar"><span>'+ini(m.name)+'</span></div><h4>'+esc(m.name)+'</h4><span class="gen">'+esc(m.gen)+'</span><span class="team-tag '+esc(m.team)+'">'+(LABEL[m.team]||'')+'</span></div>';}).join('');
+    if(mg)mg.innerHTML=shown.map(function(m){return '<div class="member-card '+esc(m.team)+'"><div class="shield-avatar">'+av(m)+'</div><h4>'+esc(m.name)+'</h4><span class="gen">'+esc(m.gen)+'</span><span class="team-tag '+esc(m.team)+'">'+(LABEL[m.team]||'')+'</span></div>';}).join('');
     var sb=pm.querySelectorAll('.team-stats b');
     if(sb.length>=2){sb[0].textContent=pad(shown.filter(function(m){return m.team!=='trainee';}).length);sb[1].textContent=pad(shown.filter(function(m){return m.team==='trainee';}).length);}
 
