@@ -675,10 +675,9 @@ input,textarea,select{font-family:inherit;}
         <div class="panel">
           <div class="panel-header"><span class="panel-title">Reminder</span></div>
           <div class="panel-body">
-            <p style="font-size:13px;color:var(--ink-soft);margin-bottom:12px;">Agenda dikirim otomatis tiap pagi pukul 07.00 ke email akunmu: hari ini &amp; besok, plus ringkasan 7 hari setiap Senin. Hanya terkirim kalau ada agenda untuk tim/member yang kamu pegang.</p>
-            <div class="form-group"><label class="form-label">Email penerima (dari akunmu)</label><input class="form-input" id="ag-email" type="email" readonly placeholder="Belum diisi. Minta admin mengisinya di menu Akun"></div>
-            <button class="btn btn-ghost btn-sm" onclick="remindNow()">Kirim ringkasan sekarang</button>
-          </div>
+            <p style="font-size:13px;color:var(--ink-soft);margin-bottom:12px;">Reminder otomatis dikirim ke email akunmu tiap pagi pukul 07.00 (hari ini &amp; besok; ringkasan 7 hari tiap Senin), sesuai tim yang kamu pegang. Agenda baru juga langsung dikirim saat ditambahkan. Hanya terkirim kalau ada agenda.</p>
+            <div class="form-group"><label class="form-label">Dikirim ke</label><div id="ag-email" style="font-size:14px;font-weight:600;"></div><div id="ag-email-hint" style="font-size:12px;color:var(--ink-soft);margin-top:4px;"></div></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn btn-ghost btn-sm" onclick="remindNow()">Kirim ringkasan sekarang</button></div>
           </div>
         </div>
       </div>
@@ -701,7 +700,7 @@ input,textarea,select{font-family:inherit;}
             <div class="form-group"><label class="form-label">Nama</label><input class="form-input" id="u-full" placeholder="Nama lengkap"></div>
             <div class="form-group"><label class="form-label">Role</label><select class="form-select" id="u-role"><option value="manager">Manager (member &amp; jadwal)</option><option value="admin">Admin (akses penuh)</option></select></div>
             <div class="form-group"><label class="form-label">Tim yang dipegang (untuk Manager)</label><div style="display:flex;gap:14px;flex-wrap:wrap;font-size:13.5px;"><label><input type="checkbox" class="u-team" value="miii"> MIII</label><label><input type="checkbox" class="u-team" value="jii"> JII</label><label><input type="checkbox" class="u-team" value="cii"> CII</label><label><input type="checkbox" class="u-team" value="trainee"> Trainee</label></div></div>
-            <div class="form-group"><label class="form-label">Email (wajib untuk Manager, dipakai untuk reminder)</label><input class="form-input" id="u-email" type="email" placeholder="opsional"></div>
+            <div class="form-group"><label class="form-label">Email manager (tujuan reminder agenda tim)</label><input class="form-input" id="u-email" type="email" placeholder="nama@gmail.com"></div>
             <div class="form-group"><label class="form-label">Password</label><input class="form-input" id="u-pass" type="password" autocomplete="new-password" placeholder="Minimal 6 karakter"></div>
             <button class="btn btn-primary" onclick="saveUser()">Simpan Akun</button>
           </div>
@@ -709,7 +708,7 @@ input,textarea,select{font-family:inherit;}
         <div class="panel">
           <div class="panel-header"><span class="panel-title">Daftar Akun</span></div>
           <div class="panel-body" style="padding:0;">
-            <table class="member-table"><thead><tr><th>Username</th><th>Nama</th><th>Role</th><th>Tim</th><th>Aksi</th></tr></thead><tbody id="users-tbody"></tbody></table>
+            <table class="member-table"><thead><tr><th>Username</th><th>Nama</th><th>Role</th><th>Tim</th><th>Email</th><th>Aksi</th></tr></thead><tbody id="users-tbody"></tbody></table>
           </div>
         </div>
       </div>
@@ -763,10 +762,11 @@ input,textarea,select{font-family:inherit;}
         <div class="form-group"><label class="form-label">Jam</label><input class="form-input" id="si-time" type="time"></div>
       </div>
       <div class="form-group"><label class="form-label">Venue / Lokasi</label><input class="form-input" id="si-venue" placeholder="Nama tempat, kota…"></div>
-      <div class="form-group"><label class="form-label">Untuk</label><select class="form-select" id="si-member"></select><div class="form-hint">Pilih member jika agenda hanya untuk satu orang. Pilih "Seluruh tim" untuk pertunjukan tim.</div></div>
+      <div class="form-group"><label class="form-label">Agenda untuk</label><select class="form-select" id="si-who" onchange="schedWho()"><option value="team">Tim (jadwal panggung / kegiatan tim)</option><option value="member">Member tertentu (agenda pribadi, tidak tampil di web publik)</option></select></div>
+      <div class="form-group" id="si-member-wrap" style="display:none;"><label class="form-label">Member</label><select class="form-select" id="si-member"></select></div>
       <div class="form-row">
-        <div class="form-group"><label class="form-label">Tim yang Tampil</label><select class="form-select" id="si-team"><option>All Teams</option><option>Team MIII</option><option>Team JII</option><option>Team CII</option><option>Trainee</option></select></div>
-        <div class="form-group"><label class="form-label">Tipe Event</label><select class="form-select" id="si-type"><option>Reguler</option><option>Special</option><option>Kolaborasi</option><option>Charity</option><option value="Internal">Internal (tidak tampil di web publik)</option>
+        <div class="form-group" id="si-team-wrap"><label class="form-label">Tim yang Tampil</label><select class="form-select" id="si-team"><option>All Teams</option><option>Team MIII</option><option>Team JII</option><option>Team CII</option><option>Trainee</option></select></div>
+        <div class="form-group"><label class="form-label">Tipe Event</label><select class="form-select" id="si-type"><option>Reguler</option><option>Special</option><option>Kolaborasi</option><option>Charity</option></select></div>
       </div>
     </div>
     <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-add-sched')">Batal</button><button class="btn btn-primary" onclick="addSched()">Tambahkan</button></div>
@@ -874,11 +874,10 @@ function tk(s){ s=String(s||'').toLowerCase(); for(const k of ['miii','jii','cii
 function myTeams(){ if(!ME) return []; if(ME.role==='admin') return ['miii','jii','cii','trainee']; return (ME.teams||'').split(',').filter(Boolean); }
 function ymd(y,m,d){ return y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0'); }
 function dstr(d){ return ymd(d.getFullYear(),d.getMonth(),d.getDate()); }
+function schedKey(s){ const m=s.member&&store.members.find(x=>String(x.id)===String(s.member)); return m?m.team:tk(s.team); }
 function itemsOn(ds){
   const t=myTeams(), r=[];
-  const mem=s=>s.member?store.members.find(m=>String(m.id)===String(s.member)):null;
-  const mine=s=>{ if(s.member){ const m=mem(s); return !!m&&t.includes(m.team); } return tk(s.team)==='all'||t.includes(tk(s.team)); };
-  store.schedule.filter(s=>s.date===ds&&mine(s)).forEach(s=>{ const m=mem(s); r.push({k:'j',time:s.time||'',text:s.title,sub:[s.time,s.venue,m?(m.nick||m.name):s.team].filter(Boolean).join(' · ')}); });
+  store.schedule.filter(s=>s.date===ds&&(schedKey(s)==='all'||t.includes(schedKey(s)))).forEach(s=>r.push({k:'j',time:s.time||'',text:s.title,sub:[s.time,s.venue,memberLabel(s)].filter(Boolean).join(' · ')}));
   store.members.filter(m=>m.dob&&m.dob.slice(5)===ds.slice(5)&&t.includes(m.team)).forEach(m=>r.push({k:'b',time:'',text:'🎂 Ulang tahun '+(m.nick||m.name),sub:TN[m.team]||''}));
   return r.sort((x,y)=>x.time.localeCompare(y.time));
 }
@@ -888,7 +887,8 @@ let calY,calM,calSel;
 function renderAgenda(){
   const t=myTeams(), now=new Date();
   document.getElementById('ag-teams').textContent=t.length?'Tim: '+t.map(x=>TN[x]).join(', '):'';
-  document.getElementById('ag-email').value=ME&&ME.email||'';
+  document.getElementById('ag-email').textContent=(ME&&ME.email)||'Belum ada email';
+  document.getElementById('ag-email-hint').textContent=(ME&&ME.email)?'Diatur oleh admin di menu Akun.':'Minta admin mengisi emailmu di menu Akun supaya reminder aktif.';
   if(!t.length){ document.getElementById('ag-summary').innerHTML='<p class="ag-empty">Belum ada tim yang ditetapkan untuk akunmu. Minta admin mengaturnya di menu Akun.</p>'; }
   else{
     let h='';
@@ -922,11 +922,6 @@ function agendaBanner(){
   el.innerHTML='🔔 <b>Pengingat:</b> '+(a.length?a.length+' kegiatan hari ini':'')+(a.length&&b.length?', ':'')+(b.length?b.length+' kegiatan besok':'')+' untuk tim yang kamu pegang. <u>Lihat agenda</u>';
   el.style.display='block';
 }
-async function saveEmail(){
-  const r=await api('set_email',{email:document.getElementById('ag-email').value});
-  if(!r.ok) return showToast(r.error,'error');
-  ME.email=document.getElementById('ag-email').value.trim(); showToast('Email disimpan','success');
-}
 async function remindNow(){
   showToast('Mengirim…','');
   try{
@@ -940,7 +935,7 @@ async function renderUsers(){
   if(!ME||ME.role!=='admin') return;
   const r=await api('users_list'); if(!r.ok) return showToast(r.error,'error');
   USERS=r.users;
-  document.getElementById('users-tbody').innerHTML=USERS.map(u=>`<tr><td><b>${esc(u.username)}</b></td><td>${esc(u.name)}</td><td>${u.role==='admin'?'Admin':'Manager'}</td><td>${u.role==='admin'?'Semua':(u.teams||'—').toUpperCase().replace(/,/g,', ')}</td><td><div style="display:flex;gap:6px;"><button class="btn btn-ghost btn-sm" onclick="editUser('${esc(u.username)}')">Edit</button><button class="btn btn-danger btn-sm" onclick="delUser('${esc(u.username)}')">Hapus</button></div></td></tr>`).join('');
+  document.getElementById('users-tbody').innerHTML=USERS.map(u=>`<tr><td><b>${esc(u.username)}</b></td><td>${esc(u.name)}</td><td>${u.role==='admin'?'Admin':'Manager'}</td><td>${u.role==='admin'?'Semua':(u.teams||'—').toUpperCase().replace(/,/g,', ')}</td><td>${esc(u.email||'—')}</td><td><div style="display:flex;gap:6px;"><button class="btn btn-ghost btn-sm" onclick="editUser('${esc(u.username)}')">Edit</button><button class="btn btn-danger btn-sm" onclick="delUser('${esc(u.username)}')">Hapus</button></div></td></tr>`).join('');
 }
 function esc(t){return String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function editUser(n){
@@ -1091,11 +1086,29 @@ function editNews(id){
 function addSched(){
   const title=document.getElementById('si-title').value.trim();
   if(!title){ showToast('Nama event tidak boleh kosong','error'); return; }
-  const mid=document.getElementById('si-member').value;
-  const m=mid?store.members.find(x=>String(x.id)===mid):null;
-  store.schedule.push({ id:Date.now(), title, date:document.getElementById('si-date').value, time:document.getElementById('si-time').value, venue:document.getElementById('si-venue').value, team:m?TN[m.team]:document.getElementById('si-team').value, type:document.getElementById('si-type').value, member:mid });
+  let team=document.getElementById('si-team').value, member='';
+  if(document.getElementById('si-who').value==='member'){
+    member=document.getElementById('si-member').value;
+    const m=store.members.find(x=>String(x.id)===String(member));
+    if(!m){ showToast('Pilih member dulu (tambahkan di Data Member jika belum ada)','error'); return; }
+    team=TN[m.team]||m.team;
+  }
+  store.schedule.push({ id:Date.now(), title, date:document.getElementById('si-date').value, time:document.getElementById('si-time').value, venue:document.getElementById('si-venue').value, team, member, type:document.getElementById('si-type').value });
   saveStore(); closeModal('modal-add-sched'); renderSchedule(); updateDashStats();
   showToast(`Jadwal "${title}" ditambahkan!`,'success');
+}
+function schedWho(){
+  const mem=document.getElementById('si-who').value==='member';
+  document.getElementById('si-member-wrap').style.display=mem?'':'none';
+  document.getElementById('si-team-wrap').style.display=mem?'none':'';
+  if(mem){
+    const mine=myTeams();
+    document.getElementById('si-member').innerHTML=store.members.filter(m=>mine.includes(m.team)).map(m=>`<option value="${esc(m.id)}">${esc(m.nick||m.name)} (${esc(TN[m.team]||m.team)})</option>`).join('')||'<option value="">Belum ada member</option>';
+  }
+}
+function memberLabel(s){
+  const m=s.member&&store.members.find(x=>String(x.id)===String(s.member));
+  return m?('👤 '+(m.nick||m.name)+' · '+(TN[m.team]||m.team)):s.team;
 }
 function renderSchedule(){
   const list=document.getElementById('sched-list');
@@ -1109,7 +1122,7 @@ function renderSchedule(){
     const my=d?d.toLocaleString('id-ID',{month:'short',year:'numeric'}):'';
     return `<div class="sched-admin-row">
       <div><div class="sched-date-big">${dn}</div><div class="sched-date-sub">${my} ${s.time||''}</div></div>
-      <div><div style="font-size:15px;font-weight:600;">${s.title}</div><div style="font-size:13px;color:var(--ink-soft);margin-top:3px;">${s.venue||'—'} · ${s.team}</div></div>
+      <div><div style="font-size:15px;font-weight:600;">${s.title}</div><div style="font-size:13px;color:var(--ink-soft);margin-top:3px;">${s.venue||'—'} · ${esc(memberLabel(s))}</div></div>
       <span style="font-size:11.5px;font-weight:700;padding:4px 12px;border:1px solid var(--line);white-space:nowrap;">${s.type}</span>
       <button class="btn btn-danger btn-sm" onclick="deleteSched(${s.id})">Hapus</button>
     </div>`;
@@ -1223,12 +1236,9 @@ function updateDashStats(){
 }
 
 /* MODAL */
-function fillSchedMembers(){
-  const t=myTeams(), el=document.getElementById('si-member');
-  el.innerHTML='<option value="">Seluruh tim (sesuai pilihan Tim)</option>'+store.members.filter(m=>t.includes(m.team)).map(m=>`<option value="${m.id}">${esc(m.nick||m.name)} (${TN[m.team]})</option>`).join('');
-}
-function openModal(id){ if(id==='modal-add-sched') fillSchedMembers(); document.getElementById(id).classList.add('open'); }
-  
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ window._editId=null; if(id==='modal-add-member'){ window._editMemId=null; window._memPhoto=''; ['mi-name','mi-nick','mi-gen','mi-dob'].forEach(i=>document.getElementById(i).value=''); document.getElementById('mi-photo-prev').style.display='none'; document.getElementById('mi-photo-txt').textContent='Klik untuk upload foto'; } document.getElementById(id).classList.remove('open'); }
+
 /* TOAST */
 function showToast(msg,type=''){
   const c=document.getElementById('toast-container');
