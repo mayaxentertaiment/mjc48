@@ -235,8 +235,9 @@ input,textarea,select{font-family:inherit;}
 <div id="login" style="position:fixed;inset:0;z-index:9999;background:var(--navy);display:flex;align-items:center;justify-content:center;padding:20px;">
   <div style="background:var(--paper);padding:36px 32px;width:100%;max-width:360px;border-radius:2px;">
     <div style="font-family:'Fraunces',serif;font-size:26px;font-weight:600;color:var(--ink);">MJC48 Admin</div>
-    <p style="font-size:13px;color:var(--ink-soft);margin:6px 0 20px;">Panel internal. Masukkan PIN untuk melanjutkan.</p>
-    <input id="login-pin" type="password" inputmode="numeric" placeholder="PIN" class="form-input" onkeydown="if(event.key==='Enter')doLogin()">
+    <p style="font-size:13px;color:var(--ink-soft);margin:6px 0 20px;">Panel internal. Masuk dengan akun kamu.</p>
+    <input id="login-user" type="text" autocomplete="username" placeholder="Username" class="form-input" style="margin-bottom:10px" onkeydown="if(event.key==='Enter')document.getElementById('login-pass').focus()">
+    <input id="login-pass" type="password" autocomplete="current-password" placeholder="Password" class="form-input" onkeydown="if(event.key==='Enter')doLogin()">
     <div id="login-err" style="color:var(--danger);font-size:12.5px;min-height:18px;margin:8px 0;"></div>
     <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="doLogin()">Masuk</button>
   </div>
@@ -281,6 +282,9 @@ input,textarea,select{font-family:inherit;}
     <div class="nav-item" data-page="settings">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M7 1h2l.5 2a5 5 0 011.3.75l1.9-.75 1 1.73-1.5 1.3a5 5 0 010 1.44l1.5 1.3-1 1.73-1.9-.75A5 5 0 019.5 11l-.5 2H7l-.5-2a5 5 0 01-1.3-.75l-1.9.75-1-1.73 1.5-1.3a5 5 0 010-1.44L2.3 5.23l1-1.73 1.9.75A5 5 0 016.5 3L7 1zM8 5a3 3 0 100 6A3 3 0 008 5z"/></svg>Pengaturan
     </div>
+    <div class="nav-item" data-page="accounts">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M8 8a3 3 0 100-6 3 3 0 000 6zm0 1c-3 0-5 1.5-5 3v1h10v-1c0-1.5-2-3-5-3z"/></svg>Akun
+    </div>
     <div class="nav-item" data-page="preview">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M8 3C4 3 1 8 1 8s3 5 7 5 7-5 7-5-3-5-7-5zm0 8a3 3 0 110-6 3 3 0 010 6z"/></svg>Preview Web Publik
       <span class="nav-badge gold">↗</span>
@@ -293,7 +297,7 @@ input,textarea,select{font-family:inherit;}
         <div class="user-name">Admin MJC48</div>
         <div class="user-role">Super Admin</div>
       </div>
-      <button class="logout-btn" title="Logout">✕</button>
+      <button class="logout-btn" title="Keluar" onclick="logout()">✕</button>
     </div>
   </div>
 </aside>
@@ -631,6 +635,35 @@ input,textarea,select{font-family:inherit;}
     </div>
 
     <!-- PREVIEW -->
+    <div class="page" id="page-accounts">
+      <div class="panel" style="max-width:520px;margin-bottom:22px;">
+        <div class="panel-header"><span class="panel-title">Ganti Password Saya</span></div>
+        <div class="panel-body">
+          <div class="form-group"><label class="form-label">Password Lama</label><input class="form-input" id="pw-old" type="password" autocomplete="current-password"></div>
+          <div class="form-group"><label class="form-label">Password Baru</label><input class="form-input" id="pw-new" type="password" autocomplete="new-password" placeholder="Minimal 6 karakter"></div>
+          <button class="btn btn-primary" onclick="changePw()">Ganti Password</button>
+        </div>
+      </div>
+      <div id="users-panel" style="display:none;">
+        <div class="panel" style="max-width:520px;margin-bottom:22px;">
+          <div class="panel-header"><span class="panel-title">Tambah / Edit Akun</span><button class="btn btn-ghost btn-sm" onclick="resetUserForm()">Kosongkan</button></div>
+          <div class="panel-body">
+            <div class="form-group"><label class="form-label">Username</label><input class="form-input" id="u-name" placeholder="contoh: manager-miii" autocapitalize="none"></div>
+            <div class="form-group"><label class="form-label">Nama</label><input class="form-input" id="u-full" placeholder="Nama lengkap"></div>
+            <div class="form-group"><label class="form-label">Role</label><select class="form-select" id="u-role"><option value="manager">Manager (member &amp; jadwal)</option><option value="admin">Admin (akses penuh)</option></select></div>
+            <div class="form-group"><label class="form-label">Password</label><input class="form-input" id="u-pass" type="password" autocomplete="new-password" placeholder="Minimal 6 karakter"></div>
+            <button class="btn btn-primary" onclick="saveUser()">Simpan Akun</button>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">Daftar Akun</span></div>
+          <div class="panel-body" style="padding:0;">
+            <table class="member-table"><thead><tr><th>Username</th><th>Nama</th><th>Role</th><th>Aksi</th></tr></thead><tbody id="users-tbody"></tbody></table>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="page" id="page-preview">
       <div class="panel">
         <div class="panel-header"><span class="panel-title">Preview Web Publik</span><a href="index.html" target="_blank" class="btn btn-primary btn-sm">Buka di Tab Baru ↗</a></div>
@@ -729,38 +762,91 @@ let store = {
 };
 /* API — GANTI dengan URL /exec dari Apps Script */
 const API='https://script.google.com/macros/s/AKfycbwtWUZX3G4JsjO_9RHiWPAVJQA3wiobisfs9O7XmF8w9LD2CuXLFOscB5DQGBsTo3U/exec';
-let PIN=sessionStorage.getItem('mjc48-pin')||'', LOADED=false, _t;
+let TOKEN=sessionStorage.getItem('mjc48-token')||'', ME=null, LOADED=false, _t;
 async function api(op,data){
-  const r=await fetch(API,{method:'POST',body:JSON.stringify({pin:PIN,op,data})});
+  const r=await fetch(API,{method:'POST',body:JSON.stringify({token:TOKEN,op,data})});
   return r.json();
 }
+const CAN_MANAGER=['dashboard','schedule-manager','member-manager','accounts','preview'];
+function can(pid){ return !ME||ME.role==='admin'||CAN_MANAGER.includes(pid); }
+function applyRole(){
+  document.querySelectorAll('.nav-item[data-page]').forEach(n=>n.style.display=can(n.dataset.page)?'':'none');
+  document.querySelectorAll('.quick-card').forEach(c=>{const m=(c.getAttribute('onclick')||'').match(/goPage\('([^']+)'/); if(m&&!can(m[1])) c.style.display='none';});
+  const nm=document.querySelector('.user-name'), rl=document.querySelector('.user-role'), av=document.querySelector('.user-avatar');
+  if(ME){ nm.textContent=ME.name||ME.username; rl.textContent=ME.role==='admin'?'Admin (akses penuh)':'Manager'; av.textContent=(ME.name||ME.username)[0].toUpperCase(); }
+  const ua=document.getElementById('users-panel'); if(ua) ua.style.display=ME&&ME.role==='admin'?'':'none';
+}
+function logout(){ sessionStorage.removeItem('mjc48-token'); location.reload(); }
 async function doLogin(silent){
   const err=document.getElementById('login-err');
-  if(!silent) PIN=document.getElementById('login-pin').value.trim();
-  if(!PIN) return;
-  err.textContent='Memeriksa…';
   try{
+    if(!silent){
+      const u=document.getElementById('login-user').value.trim(), p=document.getElementById('login-pass').value;
+      if(!u||!p){ err.textContent='Isi username dan password'; return; }
+      err.textContent='Memeriksa…';
+      const l=await (await fetch(API,{method:'POST',body:JSON.stringify({op:'login',username:u,password:p})})).json();
+      if(!l.ok) throw new Error(l.error);
+      TOKEN=l.token; sessionStorage.setItem('mjc48-token',TOKEN);
+    }
     const r=await api('load');
     if(!r.ok) throw new Error(r.error);
-    const d=r.data;
+    const d=r.data; ME=r.user;
     store.hero=Object.assign({},store.hero,d.hero);
     store.teams=Object.assign({miii:false,jii:false,cii:false,trainee:false},d.teams);
     store.news=d.news; store.schedule=d.schedule; store.members=d.members;
-    sessionStorage.setItem('mjc48-pin',PIN);
-    LOADED=true; initUI();
+    LOADED=true; initUI(); applyRole();
     document.getElementById('login').style.display='none';
   }catch(e){
-    sessionStorage.removeItem('mjc48-pin'); PIN='';
-    err.textContent=e.message==='PIN salah'?'PIN salah':'Gagal terhubung ke server: '+e.message;
+    sessionStorage.removeItem('mjc48-token'); TOKEN='';
+    err.textContent=silent?'':(e.message||'Gagal terhubung ke server');
   }
 }
 function saveStore(){
   if(!LOADED) return;
   clearTimeout(_t);
   _t=setTimeout(async()=>{
-    try{ const r=await api('save',store); if(!r.ok) throw new Error(r.error); }
+    try{ const r=await api('save',store); if(!r.ok){ if(r.expired){ showToast('Sesi habis, login lagi','error'); setTimeout(logout,1200);} throw new Error(r.error); } }
     catch(e){ showToast('Gagal menyimpan ke server: '+e.message,'error'); }
   },500);
+}
+/* AKUN */
+let USERS=[];
+async function renderUsers(){
+  if(!ME||ME.role!=='admin') return;
+  const r=await api('users_list'); if(!r.ok) return showToast(r.error,'error');
+  USERS=r.users;
+  document.getElementById('users-tbody').innerHTML=USERS.map(u=>`<tr><td><b>${esc(u.username)}</b></td><td>${esc(u.name)}</td><td>${u.role==='admin'?'Admin':'Manager'}</td><td><div style="display:flex;gap:6px;"><button class="btn btn-ghost btn-sm" onclick="editUser('${esc(u.username)}')">Edit</button><button class="btn btn-danger btn-sm" onclick="delUser('${esc(u.username)}')">Hapus</button></div></td></tr>`).join('');
+}
+function esc(t){return String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function editUser(n){
+  const u=USERS.find(x=>x.username===n); if(!u) return;
+  document.getElementById('u-name').value=u.username; document.getElementById('u-name').readOnly=true;
+  document.getElementById('u-full').value=u.name; document.getElementById('u-role').value=u.role;
+  document.getElementById('u-pass').value=''; document.getElementById('u-pass').placeholder='Kosongkan jika tidak diganti';
+  window.scrollTo(0,0);
+}
+function resetUserForm(){
+  ['u-name','u-full','u-pass'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('u-name').readOnly=false; document.getElementById('u-pass').placeholder='Minimal 6 karakter';
+}
+async function saveUser(){
+  const d={username:document.getElementById('u-name').value,name:document.getElementById('u-full').value,role:document.getElementById('u-role').value,password:document.getElementById('u-pass').value};
+  const r=await api('user_save',d);
+  if(!r.ok) return showToast(r.error,'error');
+  showToast('Akun disimpan','success'); resetUserForm(); renderUsers();
+}
+async function delUser(n){
+  if(!confirm('Hapus akun "'+n+'"?')) return;
+  const r=await api('user_del',{username:n});
+  if(!r.ok) return showToast(r.error,'error');
+  showToast('Akun dihapus',''); renderUsers();
+}
+async function changePw(){
+  const o=document.getElementById('pw-old').value, n=document.getElementById('pw-new').value;
+  const r=await api('change_pw',{old:o,pw:n});
+  if(!r.ok) return showToast(r.error,'error');
+  document.getElementById('pw-old').value=''; document.getElementById('pw-new').value='';
+  showToast('Password diganti','success');
 }
 
 /* NAVIGATION */
@@ -773,10 +859,12 @@ const pageInfo = {
   'team-manager':{ title:'Manajemen Tim', crumb:'MJC48 Admin / Tim' },
   'media-manager':{ title:'Media & Gambar', crumb:'MJC48 Admin / Media' },
   'settings':{ title:'Pengaturan', crumb:'MJC48 Admin / Settings' },
+  'accounts':{ title:'Akun', crumb:'MJC48 Admin / Akun' },
   'preview':{ title:'Preview Web Publik', crumb:'MJC48 Admin / Preview' },
 };
 
 function goPage(pid){
+  if(!can(pid)) pid='dashboard';
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item[data-page]').forEach(n=>n.classList.remove('active'));
   const pg=document.getElementById('page-'+pid);
@@ -790,6 +878,7 @@ function goPage(pid){
   if(pid==='member-manager') renderMembers();
   if(pid==='schedule-manager') renderSchedule();
   if(pid==='dashboard') updateDashStats();
+  if(pid==='accounts') renderUsers();
 }
 
 document.querySelectorAll('.nav-item[data-page]').forEach(el=>{
@@ -1052,7 +1141,7 @@ function initUI(){
   });
   updateDashStats(); renderNews(); renderSchedule(); renderMembers();
 }
-window.addEventListener('DOMContentLoaded',()=>{ if(PIN) doLogin(true); });
+window.addEventListener('DOMContentLoaded',()=>{ if(TOKEN) doLogin(true); });
 </script>
 </body>
 </html>
