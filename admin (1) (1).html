@@ -703,10 +703,13 @@ input,textarea,select{font-family:inherit;}
       <div class="form-group"><label class="form-label">Tanggal Lahir</label><input class="form-input" id="mi-dob" type="date"></div>
       <div class="form-group">
         <label class="form-label">Foto Member</label>
-        <div class="media-upload-zone" style="padding:16px;" onclick="showToast('Upload foto member aktif','')">
-          <div class="muz-text" style="font-size:13px;">Klik untuk upload foto</div>
-          <div class="muz-sub">JPG, PNG, WebP — Maks 2MB</div>
+        <input type="file" id="mi-photo-file" accept="image/*" style="display:none" onchange="uploadPhoto(this)">
+        <div class="media-upload-zone" style="padding:16px;" onclick="document.getElementById('mi-photo-file').click()">
+          <img id="mi-photo-prev" alt="" style="display:none;width:90px;height:90px;object-fit:cover;border-radius:50%;margin:0 auto 8px;">
+          <div class="muz-text" id="mi-photo-txt" style="font-size:13px;">Klik untuk upload foto</div>
+          <div class="muz-sub">JPG, PNG, WebP — otomatis dikecilkan</div>
         </div>
+      </div>
       </div>
     </div>
     <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-add-member')">Batal</button><button class="btn btn-primary" onclick="addMember()">Tambahkan</button></div>
@@ -900,11 +903,28 @@ function deleteSched(id){
 }
 
 /* MEMBERS */
+async function uploadPhoto(inp){
+  const f=inp.files[0]; if(!f) return;
+  const txt=document.getElementById('mi-photo-txt'); txt.textContent='Mengunggah…';
+  try{
+    const img=await new Promise((ok,no)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=no;i.src=URL.createObjectURL(f);});
+    const s=Math.min(1,600/Math.max(img.width,img.height)), c=document.createElement('canvas');
+    c.width=Math.round(img.width*s); c.height=Math.round(img.height*s);
+    c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+    const b64=c.toDataURL('image/jpeg',0.85).split(',')[1];
+    const r=await api('upload',{base64:b64,mime:'image/jpeg'});
+    if(!r.ok) throw new Error(r.error);
+    window._memPhoto=r.url;
+    const p=document.getElementById('mi-photo-prev'); p.src=c.toDataURL('image/jpeg',0.6); p.style.display='block';
+    txt.textContent='Foto terunggah. Klik untuk ganti.';
+  }catch(e){ txt.textContent='Gagal: '+e.message+'. Klik untuk coba lagi.'; }
+}
 function addMember(){
   const name=document.getElementById('mi-name').value.trim();
   if(!name){ showToast('Nama tidak boleh kosong','error'); return; }
   const nick=document.getElementById('mi-nick').value.trim()||name;
-  store.members.push({ id:Date.now(), name, nick, team:document.getElementById('mi-team').value, gen:document.getElementById('mi-gen').value, dob:document.getElementById('mi-dob').value });
+  store.members.push({ id:Date.now(), name, nick, team:document.getElementById('mi-team').value, gen:document.getElementById('mi-gen').value, dob:document.getElementById('mi-dob').value, photo:window._memPhoto||'' });
+  window._memPhoto=''; document.getElementById('mi-photo-prev').style.display='none'; document.getElementById('mi-photo-txt').textContent='Klik untuk upload foto'; document.getElementById('mi-photo-file').value='';
   saveStore(); closeModal('modal-add-member'); renderMembers(); updateDashStats();
   document.getElementById('mi-name').value=''; document.getElementById('mi-nick').value=''; document.getElementById('mi-gen').value='';
   showToast(`Member "${nick}" ditambahkan!`,'success');
