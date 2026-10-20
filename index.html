@@ -1045,5 +1045,96 @@ document.querySelectorAll('.dropdown-toggle').forEach(function(btn){
   navigate(location.hash.slice(1) || 'home');
 </script>
 
+
+<script>
+/* ===== Sinkron data dari Google Sheet (diisi lewat admin.html) ===== */
+(function(){
+  var API='https://script.google.com/macros/s/AKfycbwtWUZX3G4JsjO_9RHiWPAVJQA3wiobisfs9O7XmF8w9LD2CuXLFOscB5DQGBsTo3U/exec';
+  if(API.indexOf('GANTI')===0) return;
+  var $=function(s,r){return (r||document).querySelector(s);};
+  var esc=function(t){return String(t==null?'':t).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});};
+  var TEAMS=[['miii','Team MIII'],['jii','Team JII'],['cii','Team CII'],['trainee','Trainee']];
+  var LABEL={miii:'Team MIII',jii:'Team JII',cii:'Team CII',trainee:'Trainee'};
+  function fmt(d){var x=new Date(d+'T00:00:00');return isNaN(x)?esc(d):x.toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'});}
+  function ini(n){var p=String(n||'?').trim().split(/\s+/);return esc((p[0][0]+(p[1]?p[1][0]:'')).toUpperCase());}
+  function body(t){
+    return esc(t).split(/\n{2,}/).map(function(p){
+      return '<p>'+p.replace(/\n/g,'<br>').replace(/(https?:\/\/[^\s<]+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>')+'</p>';
+    }).join('');
+  }
+  function pad(n){return n<10?'0'+n:''+n;}
+
+  function render(d){
+    var h=d.hero||{};
+    if(h.eyebrow){var e=$('#page-home .eyebrow-shield');if(e)e.lastChild.textContent=' '+h.eyebrow;}
+    if(h.title){$('#page-home .hero h1').innerHTML=esc(h.title).replace(/\*(.*?)\*/g,'<em>$1</em>');}
+    if(h.lead){$('#page-home .hero .lead').textContent=h.lead;}
+    var b=$('#page-home .hero-actions a');
+    if(b&&h.btn){b.textContent=h.btn;if(/^(#|https?:\/\/)/.test(h.btnLink||''))b.href=h.btnLink;}
+
+    // Berita
+    var news=(d.news||[]).slice().sort(function(a,c){return (c.date||'').localeCompare(a.date||'');});
+    window.newsData=news.map(function(n){return {tag:n.tag,title:n.title,date:fmt(n.date),img:'',content:body(n.body)};});
+    window.showNews=function(i){
+      var n=window.newsData[i];if(!n)return;
+      $('#nd-tag').textContent=n.tag;$('#nd-title').textContent=n.title;$('#nd-date').textContent=n.date;
+      $('#nd-img').style.display='none';$('#nd-content').innerHTML=n.content;
+    };
+    var item=function(n,i){return '<a href="#news-detail" onclick="showNews('+i+')" class="news-item"><span class="tag">'+esc(n.tag)+'</span><h4>'+esc(n.title)+'</h4><span class="date">'+fmt(n.date)+'</span></a>';};
+    var empty='<p style="text-align:center;color:var(--ink-soft);">Belum ada berita.</p>';
+    var all=$('#page-news .news-grid'),home=$('#page-home .section.alt .news-grid');
+    if(all)all.innerHTML=news.length?news.map(item).join(''):empty;
+    if(home)home.innerHTML=news.length?news.slice(0,3).map(item).join(''):empty;
+    if((location.hash.slice(1))==='news-detail')showNews(0);
+
+    // Jadwal (hanya yang belum lewat)
+    var today=new Date().toISOString().slice(0,10);
+    var sc=(d.schedule||[]).filter(function(s){return (s.date||'')>=today;}).sort(function(a,c){return (a.date+a.time).localeCompare(c.date+c.time);});
+    var row=function(s){
+      var x=new Date(s.date+'T00:00:00');
+      var t=/^\d{1,2}[:.]\d{2}$/.test(s.time||'')?s.time.replace(':','.')+' WIB':esc(s.time);
+      return '<div class="sched-row"><div><span class="d-num">'+pad(x.getDate())+'</span><span class="d-sub">'+x.toLocaleString('id-ID',{month:'short'}).toUpperCase()+'</span></div><div><h4>'+esc(s.title)+'</h4><span class="venue">'+esc(s.venue)+'</span></div><span class="badge">'+t+'</span></div>';
+    };
+    var pj=$('#page-jadwal');
+    pj.classList.toggle('locked',!sc.length);
+    var list=$('#page-jadwal .sched-list');if(list)list.innerHTML=sc.map(row).join('');
+    var num=$('#page-jadwal .section-head .num');if(num)num.textContent=sc.length+' pertunjukan mendatang';
+    var hs=$('#page-home .section:last-child .wrap');
+    if(hs){
+      var old=hs.querySelector('.sched-list,div[style*="text-align:center"]');
+      if(old){
+        if(sc.length){var w=document.createElement('div');w.className='sched-list';w.innerHTML=sc.slice(0,3).map(row).join('');old.replaceWith(w);}
+      }
+    }
+
+    // Tim & member
+    var t=d.teams||{},ms=d.members||[],anyOpen=false;
+    TEAMS.forEach(function(x){
+      var k=x[0],open=!!t[k],mem=ms.filter(function(m){return m.team===k;});
+      if(open)anyOpen=true;
+      var pg=$('#page-'+k);if(!pg)return;
+      pg.classList.toggle('locked',!open);
+      var grid=pg.querySelector('.member-grid');
+      if(grid)grid.innerHTML=mem.length?mem.map(function(m){return '<div class="member-card"><div class="shield-avatar"><span>'+ini(m.name)+'</span></div><h4>'+esc(m.name)+'</h4><span class="gen">'+esc(m.gen)+'</span></div>';}).join(''):'<p style="color:var(--ink-soft);">Belum ada member.</p>';
+      var st=pg.querySelector('.team-stats b');if(st)st.textContent=pad(mem.length);
+    });
+    var pm=$('#page-member');
+    pm.classList.toggle('locked',!anyOpen);
+    var shown=ms.filter(function(m){return t[m.team];});
+    var mg=pm.querySelector('.member-grid');
+    if(mg)mg.innerHTML=shown.map(function(m){return '<div class="member-card '+esc(m.team)+'"><div class="shield-avatar"><span>'+ini(m.name)+'</span></div><h4>'+esc(m.name)+'</h4><span class="gen">'+esc(m.gen)+'</span><span class="team-tag '+esc(m.team)+'">'+(LABEL[m.team]||'')+'</span></div>';}).join('');
+    var sb=pm.querySelectorAll('.team-stats b');
+    if(sb.length>=2){sb[0].textContent=pad(shown.filter(function(m){return m.team!=='trainee';}).length);sb[1].textContent=pad(shown.filter(function(m){return m.team==='trainee';}).length);}
+
+    // Menu dropdown Member
+    var dm=$('.dropdown-menu');
+    if(dm)dm.innerHTML=TEAMS.map(function(x){
+      return t[x[0]]?'<a href="#'+x[0]+'" class="nav-link dropdown-link">'+x[1]+'</a>':'<span class="nav-link dropdown-link disabled">'+x[1]+' <small style="opacity:0.6; font-size: 0.75em;">(Coming Soon)</small></span>';
+    }).join('')+(anyOpen?'<a href="#member" class="nav-link dropdown-link">Semua Member</a>':'<span class="nav-link dropdown-link disabled">Semua Member <small style="opacity:0.6; font-size: 0.75em;">(Coming Soon)</small></span>');
+  }
+
+  fetch(API).then(function(r){return r.json();}).then(render).catch(function(){/* gagal: tampilan bawaan tetap dipakai */});
+})();
+</script>
 </body>
 </html>
