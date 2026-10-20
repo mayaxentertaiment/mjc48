@@ -230,6 +230,24 @@ input,textarea,select{font-family:inherit;}
 @media(max-width:1100px){.stats-grid{grid-template-columns:repeat(2,1fr);}.dash-grid{grid-template-columns:1fr;}}
 @media(max-width:800px){.sidebar{transform:translateX(-100);}.main{margin-left:0;}.stats-grid{grid-template-columns:1fr 1fr;}.form-row{grid-template-columns:1fr;}.team-toggle-grid{grid-template-columns:1fr;}}
 </style>
+<style>
+.cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+.cal-dow{font-size:11px;font-weight:600;color:var(--ink-soft);text-align:center;padding:4px 0;}
+.cal-cell{min-height:58px;border:1px solid rgba(20,16,58,.12);background:#fff;padding:4px 6px;font-size:12px;cursor:pointer;border-radius:3px;}
+.cal-cell:hover{border-color:var(--blue);}
+.cal-cell.out{background:transparent;border-color:transparent;cursor:default;}
+.cal-cell.today{border-color:var(--blue);box-shadow:inset 0 0 0 1px var(--blue);}
+.cal-cell.sel{background:rgba(43,28,255,.08);}
+.cal-badge{display:inline-block;margin-top:4px;font-size:10.5px;background:var(--blue);color:#fff;border-radius:9px;padding:0 6px;}
+.cal-badge.b{background:#C9A227;}
+.ag-day{margin-bottom:14px;}
+.ag-day h4{font-size:13px;margin-bottom:6px;}
+.ag-item{padding:8px 12px;border-left:3px solid var(--blue);background:rgba(43,28,255,.05);margin-bottom:6px;font-size:13.5px;}
+.ag-item.b{border-color:#C9A227;background:rgba(201,162,39,.1);}
+.ag-item small{display:block;color:var(--ink-soft);}
+.ag-empty{color:var(--ink-soft);font-size:13px;}
+</style>
 </head>
 <body>
 <div id="login" style="position:fixed;inset:0;z-index:9999;background:var(--navy);display:flex;align-items:center;justify-content:center;padding:20px;">
@@ -282,6 +300,9 @@ input,textarea,select{font-family:inherit;}
     <div class="nav-item" data-page="settings">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M7 1h2l.5 2a5 5 0 011.3.75l1.9-.75 1 1.73-1.5 1.3a5 5 0 010 1.44l1.5 1.3-1 1.73-1.9-.75A5 5 0 019.5 11l-.5 2H7l-.5-2a5 5 0 01-1.3-.75l-1.9.75-1-1.73 1.5-1.3a5 5 0 010-1.44L2.3 5.23l1-1.73 1.9.75A5 5 0 016.5 3L7 1zM8 5a3 3 0 100 6A3 3 0 008 5z"/></svg>Pengaturan
     </div>
+    <div class="nav-item" data-page="agenda">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M4 1h1.5v1.5h5V1H12v1.5h1.5V14h-11V2.5H4V1zM4 6v6.5h8V6H4z"/></svg>Agenda &amp; Kalender
+    </div>
     <div class="nav-item" data-page="accounts">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M8 8a3 3 0 100-6 3 3 0 000 6zm0 1c-3 0-5 1.5-5 3v1h10v-1c0-1.5-2-3-5-3z"/></svg>Akun
     </div>
@@ -319,6 +340,7 @@ input,textarea,select{font-family:inherit;}
 
     <!-- DASHBOARD -->
     <div class="page active" id="page-dashboard">
+      <div id="agenda-banner" onclick="goPage('agenda')" style="display:none;cursor:pointer;background:rgba(43,28,255,.08);border-left:3px solid var(--blue);padding:12px 16px;margin-bottom:18px;font-size:13.5px;"></div>
       <div class="stats-grid">
         <div class="stat-card s-blue">
           <div class="stat-label">Total Member</div>
@@ -635,6 +657,31 @@ input,textarea,select{font-family:inherit;}
     </div>
 
     <!-- PREVIEW -->
+    <div class="page" id="page-agenda">
+      <div class="panel" style="margin-bottom:22px;">
+        <div class="panel-header"><span class="panel-title">Ringkasan 7 Hari ke Depan</span><span id="ag-teams" style="font-size:12.5px;color:var(--ink-soft);"></span></div>
+        <div class="panel-body" id="ag-summary"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:22px;align-items:start;">
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">Kalender</span></div>
+          <div class="panel-body">
+            <div class="cal-head"><button class="btn btn-ghost btn-sm" onclick="calMove(-1)">‹</button><b id="cal-title"></b><button class="btn btn-ghost btn-sm" onclick="calMove(1)">›</button></div>
+            <div class="cal-grid" id="cal-grid"></div>
+            <div style="margin-top:16px;" id="cal-day"></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">Reminder</span></div>
+          <div class="panel-body">
+            <p style="font-size:13px;color:var(--ink-soft);margin-bottom:12px;">Agenda dikirim ke emailmu otomatis tiap pagi pukul 07.00: hari ini &amp; besok, dan ringkasan 7 hari setiap hari Senin. Hanya terkirim kalau ada agenda.</p>
+            <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="ag-email" type="email" placeholder="nama@gmail.com"></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn btn-primary btn-sm" onclick="saveEmail()">Simpan Email</button><button class="btn btn-ghost btn-sm" onclick="remindNow()">Kirim ringkasan sekarang</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="page" id="page-accounts">
       <div class="panel" style="max-width:520px;margin-bottom:22px;">
         <div class="panel-header"><span class="panel-title">Ganti Password Saya</span></div>
@@ -651,6 +698,8 @@ input,textarea,select{font-family:inherit;}
             <div class="form-group"><label class="form-label">Username</label><input class="form-input" id="u-name" placeholder="contoh: manager-miii" autocapitalize="none"></div>
             <div class="form-group"><label class="form-label">Nama</label><input class="form-input" id="u-full" placeholder="Nama lengkap"></div>
             <div class="form-group"><label class="form-label">Role</label><select class="form-select" id="u-role"><option value="manager">Manager (member &amp; jadwal)</option><option value="admin">Admin (akses penuh)</option></select></div>
+            <div class="form-group"><label class="form-label">Tim yang dipegang (untuk Manager)</label><div style="display:flex;gap:14px;flex-wrap:wrap;font-size:13.5px;"><label><input type="checkbox" class="u-team" value="miii"> MIII</label><label><input type="checkbox" class="u-team" value="jii"> JII</label><label><input type="checkbox" class="u-team" value="cii"> CII</label><label><input type="checkbox" class="u-team" value="trainee"> Trainee</label></div></div>
+            <div class="form-group"><label class="form-label">Email (untuk reminder)</label><input class="form-input" id="u-email" type="email" placeholder="opsional"></div>
             <div class="form-group"><label class="form-label">Password</label><input class="form-input" id="u-pass" type="password" autocomplete="new-password" placeholder="Minimal 6 karakter"></div>
             <button class="btn btn-primary" onclick="saveUser()">Simpan Akun</button>
           </div>
@@ -658,7 +707,7 @@ input,textarea,select{font-family:inherit;}
         <div class="panel">
           <div class="panel-header"><span class="panel-title">Daftar Akun</span></div>
           <div class="panel-body" style="padding:0;">
-            <table class="member-table"><thead><tr><th>Username</th><th>Nama</th><th>Role</th><th>Aksi</th></tr></thead><tbody id="users-tbody"></tbody></table>
+            <table class="member-table"><thead><tr><th>Username</th><th>Nama</th><th>Role</th><th>Tim</th><th>Aksi</th></tr></thead><tbody id="users-tbody"></tbody></table>
           </div>
         </div>
       </div>
@@ -767,7 +816,7 @@ async function api(op,data){
   const r=await fetch(API,{method:'POST',body:JSON.stringify({token:TOKEN,op,data})});
   return r.json();
 }
-const CAN_MANAGER=['dashboard','schedule-manager','member-manager','accounts','preview'];
+const CAN_MANAGER=['dashboard','schedule-manager','member-manager','agenda','accounts','preview'];
 function can(pid){ return !ME||ME.role==='admin'||CAN_MANAGER.includes(pid); }
 function applyRole(){
   document.querySelectorAll('.nav-item[data-page]').forEach(n=>n.style.display=can(n.dataset.page)?'':'none');
@@ -794,7 +843,7 @@ async function doLogin(silent){
     store.hero=Object.assign({},store.hero,d.hero);
     store.teams=Object.assign({miii:false,jii:false,cii:false,trainee:false},d.teams);
     store.news=d.news; store.schedule=d.schedule; store.members=d.members;
-    LOADED=true; initUI(); applyRole();
+    LOADED=true; initUI(); applyRole(); agendaBanner();
     document.getElementById('login').style.display='none';
   }catch(e){
     sessionStorage.removeItem('mjc48-token'); TOKEN='';
@@ -809,13 +858,75 @@ function saveStore(){
     catch(e){ showToast('Gagal menyimpan ke server: '+e.message,'error'); }
   },500);
 }
+/* AGENDA */
+const TN={miii:'Team MIII',jii:'Team JII',cii:'Team CII',trainee:'Trainee'};
+function tk(s){ s=String(s||'').toLowerCase(); for(const k of ['miii','jii','cii','trainee']) if(s.includes(k)) return k; return 'all'; }
+function myTeams(){ if(!ME) return []; if(ME.role==='admin') return ['miii','jii','cii','trainee']; return (ME.teams||'').split(',').filter(Boolean); }
+function ymd(y,m,d){ return y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0'); }
+function dstr(d){ return ymd(d.getFullYear(),d.getMonth(),d.getDate()); }
+function itemsOn(ds){
+  const t=myTeams(), r=[];
+  store.schedule.filter(s=>s.date===ds&&(tk(s.team)==='all'||t.includes(tk(s.team)))).forEach(s=>r.push({k:'j',time:s.time||'',text:s.title,sub:[s.time,s.venue,s.team].filter(Boolean).join(' · ')}));
+  store.members.filter(m=>m.dob&&m.dob.slice(5)===ds.slice(5)&&t.includes(m.team)).forEach(m=>r.push({k:'b',time:'',text:'🎂 Ulang tahun '+(m.nick||m.name),sub:TN[m.team]||''}));
+  return r.sort((x,y)=>x.time.localeCompare(y.time));
+}
+const itemHtml=i=>`<div class="ag-item ${i.k==='b'?'b':''}">${esc(i.text)}<small>${esc(i.sub)}</small></div>`;
+function fmtDay(ds){ return new Date(ds+'T00:00:00').toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'}); }
+let calY,calM,calSel;
+function renderAgenda(){
+  const t=myTeams(), now=new Date();
+  document.getElementById('ag-teams').textContent=t.length?'Tim: '+t.map(x=>TN[x]).join(', '):'';
+  document.getElementById('ag-email').value=ME&&ME.email||'';
+  if(!t.length){ document.getElementById('ag-summary').innerHTML='<p class="ag-empty">Belum ada tim yang ditetapkan untuk akunmu. Minta admin mengaturnya di menu Akun.</p>'; }
+  else{
+    let h='';
+    for(let i=0;i<7;i++){ const d=new Date(now.getFullYear(),now.getMonth(),now.getDate()+i), ds=dstr(d), it=itemsOn(ds);
+      if(it.length) h+=`<div class="ag-day"><h4>${i===0?'Hari ini':i===1?'Besok':''} ${fmtDay(ds)}</h4>${it.map(itemHtml).join('')}</div>`; }
+    document.getElementById('ag-summary').innerHTML=h||'<p class="ag-empty">Tidak ada kegiatan 7 hari ke depan.</p>';
+  }
+  if(calY==null){ calY=now.getFullYear(); calM=now.getMonth(); calSel=dstr(now); }
+  renderCal();
+}
+function calMove(n){ calM+=n; if(calM<0){calM=11;calY--;} if(calM>11){calM=0;calY++;} renderCal(); }
+function calPick(ds){ calSel=ds; renderCal(); }
+function renderCal(){
+  document.getElementById('cal-title').textContent=new Date(calY,calM,1).toLocaleDateString('id-ID',{month:'long',year:'numeric'});
+  const first=(new Date(calY,calM,1).getDay()+6)%7, days=new Date(calY,calM+1,0).getDate(), today=dstr(new Date());
+  let h=['Sen','Sel','Rab','Kam','Jum','Sab','Min'].map(x=>`<div class="cal-dow">${x}</div>`).join('');
+  for(let i=0;i<first;i++) h+='<div class="cal-cell out"></div>';
+  for(let d=1;d<=days;d++){
+    const ds=ymd(calY,calM,d), it=itemsOn(ds), j=it.filter(x=>x.k==='j').length, b=it.length-j;
+    h+=`<div class="cal-cell ${ds===today?'today':''} ${ds===calSel?'sel':''}" onclick="calPick('${ds}')">${d}${j?`<br><span class="cal-badge">${j} jadwal</span>`:''}${b?`<br><span class="cal-badge b">🎂 ${b}</span>`:''}</div>`;
+  }
+  document.getElementById('cal-grid').innerHTML=h;
+  const it=itemsOn(calSel);
+  document.getElementById('cal-day').innerHTML=`<h4 style="font-size:13px;margin-bottom:8px;">${fmtDay(calSel)}</h4>`+(it.length?it.map(itemHtml).join(''):'<p class="ag-empty">Tidak ada kegiatan.</p>');
+}
+function agendaBanner(){
+  const el=document.getElementById('agenda-banner'); if(!el||!myTeams().length) return;
+  const n=new Date(), t0=dstr(n), t1=dstr(new Date(n.getFullYear(),n.getMonth(),n.getDate()+1));
+  const a=itemsOn(t0), b=itemsOn(t1);
+  if(!a.length&&!b.length) return;
+  el.innerHTML='🔔 <b>Pengingat:</b> '+(a.length?a.length+' kegiatan hari ini':'')+(a.length&&b.length?', ':'')+(b.length?b.length+' kegiatan besok':'')+' untuk tim yang kamu pegang. <u>Lihat agenda</u>';
+  el.style.display='block';
+}
+async function saveEmail(){
+  const r=await api('set_email',{email:document.getElementById('ag-email').value});
+  if(!r.ok) return showToast(r.error,'error');
+  ME.email=document.getElementById('ag-email').value.trim(); showToast('Email disimpan','success');
+}
+async function remindNow(){
+  showToast('Mengirim…','');
+  const r=await api('remind_me');
+  showToast(r.ok?'Terkirim ke emailmu':r.error,r.ok?'success':'error');
+}
 /* AKUN */
 let USERS=[];
 async function renderUsers(){
   if(!ME||ME.role!=='admin') return;
   const r=await api('users_list'); if(!r.ok) return showToast(r.error,'error');
   USERS=r.users;
-  document.getElementById('users-tbody').innerHTML=USERS.map(u=>`<tr><td><b>${esc(u.username)}</b></td><td>${esc(u.name)}</td><td>${u.role==='admin'?'Admin':'Manager'}</td><td><div style="display:flex;gap:6px;"><button class="btn btn-ghost btn-sm" onclick="editUser('${esc(u.username)}')">Edit</button><button class="btn btn-danger btn-sm" onclick="delUser('${esc(u.username)}')">Hapus</button></div></td></tr>`).join('');
+  document.getElementById('users-tbody').innerHTML=USERS.map(u=>`<tr><td><b>${esc(u.username)}</b></td><td>${esc(u.name)}</td><td>${u.role==='admin'?'Admin':'Manager'}</td><td>${u.role==='admin'?'Semua':(u.teams||'—').toUpperCase().replace(/,/g,', ')}</td><td><div style="display:flex;gap:6px;"><button class="btn btn-ghost btn-sm" onclick="editUser('${esc(u.username)}')">Edit</button><button class="btn btn-danger btn-sm" onclick="delUser('${esc(u.username)}')">Hapus</button></div></td></tr>`).join('');
 }
 function esc(t){return String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function editUser(n){
@@ -823,14 +934,15 @@ function editUser(n){
   document.getElementById('u-name').value=u.username; document.getElementById('u-name').readOnly=true;
   document.getElementById('u-full').value=u.name; document.getElementById('u-role').value=u.role;
   document.getElementById('u-pass').value=''; document.getElementById('u-pass').placeholder='Kosongkan jika tidak diganti';
+  document.getElementById('u-email').value=u.email||''; const ts=(u.teams||'').split(','); document.querySelectorAll('.u-team').forEach(c=>c.checked=ts.includes(c.value));
   window.scrollTo(0,0);
 }
 function resetUserForm(){
-  ['u-name','u-full','u-pass'].forEach(i=>document.getElementById(i).value='');
+  ['u-name','u-full','u-pass','u-email'].forEach(i=>document.getElementById(i).value=''); document.querySelectorAll('.u-team').forEach(c=>c.checked=false);
   document.getElementById('u-name').readOnly=false; document.getElementById('u-pass').placeholder='Minimal 6 karakter';
 }
 async function saveUser(){
-  const d={username:document.getElementById('u-name').value,name:document.getElementById('u-full').value,role:document.getElementById('u-role').value,password:document.getElementById('u-pass').value};
+  const d={username:document.getElementById('u-name').value,name:document.getElementById('u-full').value,role:document.getElementById('u-role').value,password:document.getElementById('u-pass').value,email:document.getElementById('u-email').value,teams:[...document.querySelectorAll('.u-team:checked')].map(c=>c.value)};
   const r=await api('user_save',d);
   if(!r.ok) return showToast(r.error,'error');
   showToast('Akun disimpan','success'); resetUserForm(); renderUsers();
@@ -859,6 +971,7 @@ const pageInfo = {
   'team-manager':{ title:'Manajemen Tim', crumb:'MJC48 Admin / Tim' },
   'media-manager':{ title:'Media & Gambar', crumb:'MJC48 Admin / Media' },
   'settings':{ title:'Pengaturan', crumb:'MJC48 Admin / Settings' },
+  'agenda':{ title:'Agenda & Kalender', crumb:'MJC48 Admin / Agenda' },
   'accounts':{ title:'Akun', crumb:'MJC48 Admin / Akun' },
   'preview':{ title:'Preview Web Publik', crumb:'MJC48 Admin / Preview' },
 };
@@ -879,6 +992,7 @@ function goPage(pid){
   if(pid==='schedule-manager') renderSchedule();
   if(pid==='dashboard') updateDashStats();
   if(pid==='accounts') renderUsers();
+  if(pid==='agenda') renderAgenda();
 }
 
 document.querySelectorAll('.nav-item[data-page]').forEach(el=>{
