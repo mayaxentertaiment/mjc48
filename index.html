@@ -1147,7 +1147,12 @@ document.querySelectorAll('.dropdown-toggle').forEach(function(btn){
     }).join('')+(anyOpen?'<a href="#member" class="nav-link dropdown-link">Semua Member</a>':'<span class="nav-link dropdown-link disabled">Semua Member <small style="opacity:0.6; font-size: 0.75em;">(Coming Soon)</small></span>');
   }
 
-  fetch(API).then(function(r){return r.json();}).then(render).catch(function(){/* gagal: tampilan bawaan tetap dipakai */});
+  var KEY='mjc48-data';
+try{ var c=localStorage.getItem(KEY); if(c) render(JSON.parse(c)); }catch(e){}
+fetch(API).then(function(r){return r.json();}).then(function(d){
+  try{ localStorage.setItem(KEY,JSON.stringify(d)); }catch(e){}
+  render(d);
+}).catch(function(){});
 })();
 </script>
 </body>
