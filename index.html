@@ -1065,7 +1065,20 @@ document.querySelectorAll('.dropdown-toggle').forEach(function(btn){
   function av(m){return /^https:\/\//.test(m.photo||'')?'<img src="'+esc(m.photo)+'" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover">':'<span>'+ini(m.name)+'</span>';}
   function pad(n){return n<10?'0'+n:''+n;}
 
+  function maint(site){
+    if(!site||!site.maintenance||/[?&]preview=1/.test(location.search)) return false;
+    var o=document.createElement('div');
+    o.style.cssText='position:fixed;inset:0;z-index:99999;background:#0A0730;color:#fff;display:flex;align-items:center;justify-content:center;text-align:center;padding:28px;overflow:auto;';
+    o.innerHTML='<div style="max-width:520px"><img src="logo-mjc48.png" alt="" style="height:72px;margin-bottom:22px" onerror="this.style.display=\'none\'">'
+      +'<div style="font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:#C9A227;font-weight:600;margin-bottom:14px">MJC48</div>'
+      +'<h1 style="font-family:Fraunces,serif;font-weight:600;font-size:clamp(30px,6vw,46px);line-height:1.15;margin:0 0 18px">Sedang dalam <em style="color:#C9A227">perawatan</em></h1>'
+      +'<p style="color:#cfcbe8;font-size:16px;line-height:1.6;margin:0;white-space:pre-line">'+esc(site.msg||'Kami sedang memperbarui website. Silakan kembali beberapa saat lagi.')+'</p></div>';
+    document.body.appendChild(o); document.body.style.overflow='hidden';
+    return true;
+  }
+
   function render(d){
+    if(maint(d.site)) return;
     var h=d.hero||{};
     if(h.eyebrow){var e=$('#page-home .eyebrow-shield');if(e)e.lastChild.textContent=' '+h.eyebrow;}
     if(h.title){$('#page-home .hero h1').innerHTML=esc(h.title).replace(/\*(.*?)\*/g,'<em>$1</em>');}
