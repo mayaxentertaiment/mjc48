@@ -632,7 +632,8 @@ input,textarea,select{font-family:inherit;}
           <div class="panel" style="margin-bottom:22px;">
             <div class="panel-header"><span class="panel-title">Fitur Website Publik</span></div>
             <div class="panel-body">
-              <div class="setting-row"><div><div class="setting-name">Mode Maintenance</div><div class="setting-desc">Tampilkan halaman maintenance ke pengunjung</div></div><label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label></div>
+              <div class="setting-row"><div><div class="setting-name">Mode Maintenance</div><div class="setting-desc">Tampilkan halaman maintenance ke pengunjung</div></div><label class="toggle"><input type="checkbox" id="set-maint" onchange="saveSite()"><span class="toggle-slider"></span></label></div>
+              <div class="form-group" style="margin:4px 0 14px;"><label class="form-label">Pesan untuk pengunjung (saat maintenance)</label><textarea class="form-textarea" id="set-maint-msg" style="min-height:70px;" placeholder="Contoh: Kami sedang memperbarui website. Kembali lagi pukul 20.00 WIB ya!" onchange="saveSite()"></textarea><div style="font-size:12px;color:var(--ink-soft);margin-top:4px;">Tim bisa tetap melihat web asli lewat alamat <b>/index.html?preview=1</b></div></div>
               <div class="setting-row"><div><div class="setting-name">Tampilkan Jadwal</div><div class="setting-desc">Seksi Jadwal Panggung di beranda</div></div><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></div>
               <div class="setting-row"><div><div class="setting-name">Tampilkan Berita</div><div class="setting-desc">Seksi Kabar Terbaru di beranda</div></div><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></div>
               <div class="setting-row" style="border-bottom:none;"><div><div class="setting-name">Animasi Halaman</div><div class="setting-desc">Efek fade saat ganti halaman</div></div><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></div>
@@ -842,6 +843,7 @@ async function doLogin(silent){
     const d=r.data; ME=r.user;
     store.hero=Object.assign({},store.hero,d.hero);
     store.teams=Object.assign({miii:false,jii:false,cii:false,trainee:false},d.teams);
+    store.site=Object.assign({maintenance:false,msg:''},d.site);
     store.news=d.news; store.schedule=d.schedule; store.members=d.members;
     LOADED=true; initUI(); applyRole(); agendaBanner();
     document.getElementById('login').style.display='none';
@@ -857,6 +859,12 @@ function saveStore(){
     try{ const r=await api('save',store); if(!r.ok){ if(r.expired){ showToast('Sesi habis, login lagi','error'); setTimeout(logout,1200);} throw new Error(r.error); } }
     catch(e){ showToast('Gagal menyimpan ke server: '+e.message,'error'); }
   },500);
+}
+function saveSite(){
+  if(!ME||ME.role!=='admin') return;
+  store.site={maintenance:document.getElementById('set-maint').checked,msg:document.getElementById('set-maint-msg').value.trim()};
+  saveStore();
+  showToast(store.site.maintenance?'Mode Maintenance AKTIF. Pengunjung melihat halaman perawatan.':'Mode Maintenance dimatikan. Web kembali normal.',store.site.maintenance?'error':'success');
 }
 /* AGENDA */
 const TN={miii:'Team MIII',jii:'Team JII',cii:'Team CII',trainee:'Trainee'};
@@ -917,8 +925,10 @@ async function saveEmail(){
 }
 async function remindNow(){
   showToast('Mengirim…','');
-  const r=await api('remind_me');
-  showToast(r.ok?'Terkirim ke emailmu':r.error,r.ok?'success':'error');
+  try{
+    const r=await api('remind_me');
+    showToast(r.ok?'Terkirim. Cek inbox dan folder Spam.':r.error,r.ok?'success':'error');
+  }catch(e){ showToast('Gagal: server belum versi terbaru atau izin email belum diberikan','error'); }
 }
 /* AKUN */
 let USERS=[];
@@ -1237,6 +1247,9 @@ function formatDate(ds){ if(!ds) return '—'; const d=new Date(ds); return d.to
 
 /* INIT */
 function initUI(){
+  store.site=store.site||{maintenance:false,msg:''};
+  document.getElementById('set-maint').checked=!!store.site.maintenance;
+  document.getElementById('set-maint-msg').value=store.site.msg||'';
   // Init hero
   if(store.hero.eyebrow) document.getElementById('hero-eyebrow').value=store.hero.eyebrow;
   if(store.hero.title) document.getElementById('hero-title').value=store.hero.title;
