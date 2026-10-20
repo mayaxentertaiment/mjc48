@@ -675,9 +675,9 @@ input,textarea,select{font-family:inherit;}
         <div class="panel">
           <div class="panel-header"><span class="panel-title">Reminder</span></div>
           <div class="panel-body">
-            <p style="font-size:13px;color:var(--ink-soft);margin-bottom:12px;">Reminder otomatis dikirim ke email akunmu tiap pagi pukul 07.00 (hari ini &amp; besok; ringkasan 7 hari tiap Senin), sesuai tim yang kamu pegang. Agenda baru juga langsung dikirim saat ditambahkan. Hanya terkirim kalau ada agenda.</p>
+            <p style="font-size:13px;color:var(--ink-soft);margin-bottom:12px;">Reminder otomatis dikirim ke email manager tiap pagi pukul 07.00 (hari ini &amp; besok; ringkasan 7 hari tiap Senin), sesuai tim yang dipegang masing-masing. Agenda baru juga langsung dikirim saat ditambahkan. Hanya terkirim kalau ada agenda.</p>
             <div class="form-group"><label class="form-label">Dikirim ke</label><div id="ag-email" style="font-size:14px;font-weight:600;"></div><div id="ag-email-hint" style="font-size:12px;color:var(--ink-soft);margin-top:4px;"></div></div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn btn-ghost btn-sm" onclick="remindNow()">Kirim ringkasan sekarang</button></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn btn-ghost btn-sm" id="ag-remind-btn" onclick="remindNow()">Kirim ringkasan sekarang</button></div>
           </div>
         </div>
       </div>
@@ -887,8 +887,10 @@ let calY,calM,calSel;
 function renderAgenda(){
   const t=myTeams(), now=new Date();
   document.getElementById('ag-teams').textContent=t.length?'Tim: '+t.map(x=>TN[x]).join(', '):'';
-  document.getElementById('ag-email').textContent=(ME&&ME.email)||'Belum ada email';
-  document.getElementById('ag-email-hint').textContent=(ME&&ME.email)?'Diatur oleh admin di menu Akun.':'Minta admin mengisi emailmu di menu Akun supaya reminder aktif.';
+  const adm=ME&&ME.role==='admin';
+  document.getElementById('ag-email').textContent=adm?'Email masing-masing manager':((ME&&ME.email)||'Belum ada email');
+  document.getElementById('ag-email-hint').textContent=adm?'Reminder dikirim ke manager sesuai tim yang dipegang, bukan ke email admin. Atur email manager di menu Akun.':((ME&&ME.email)?'Diatur oleh admin di menu Akun.':'Minta admin mengisi emailmu di menu Akun supaya reminder aktif.');
+  const rb=document.getElementById('ag-remind-btn'); if(rb) rb.textContent=adm?'Kirim ringkasan ke semua manager':'Kirim ringkasan sekarang';
   if(!t.length){ document.getElementById('ag-summary').innerHTML='<p class="ag-empty">Belum ada tim yang ditetapkan untuk akunmu. Minta admin mengaturnya di menu Akun.</p>'; }
   else{
     let h='';
@@ -926,7 +928,7 @@ async function remindNow(){
   showToast('Mengirim…','');
   try{
     const r=await api('remind_me');
-    showToast(r.ok?'Terkirim. Cek inbox dan folder Spam.':r.error,r.ok?'success':'error');
+    showToast(r.ok?(r.msg||'Terkirim.'):r.error,r.ok?'success':'error');
   }catch(e){ showToast('Gagal: server belum versi terbaru atau izin email belum diberikan','error'); }
 }
 /* AKUN */
