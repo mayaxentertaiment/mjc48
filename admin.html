@@ -728,7 +728,7 @@ let store = {
   teams:{ miii:false, jii:false, cii:false, trainee:false }
 };
 /* API — GANTI dengan URL /exec dari Apps Script */
-const API='GANTI_DENGAN_URL_EXEC';
+const API='https://script.google.com/macros/s/AKfycbwtWUZX3G4JsjO_9RHiWPAVJQA3wiobisfs9O7XmF8w9LD2CuXLFOscB5DQGBsTo3U/exec';
 let PIN=sessionStorage.getItem('mjc48-pin')||'', LOADED=false, _t;
 async function api(op,data){
   const r=await fetch(API,{method:'POST',body:JSON.stringify({pin:PIN,op,data})});
