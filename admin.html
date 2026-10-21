@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="id">
-<head>
+<head><meta http-equiv="Cache-Control" content="no-cache, must-revalidate"><meta http-equiv="Pragma" content="no-cache">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>MJC48 Admin — Panel Internal</title>
@@ -933,7 +933,7 @@ let store = {
 };
 /* API — GANTI dengan URL /exec dari Apps Script */
 const API='https://script.google.com/macros/s/AKfycbwtWUZX3G4JsjO_9RHiWPAVJQA3wiobisfs9O7XmF8w9LD2CuXLFOscB5DQGBsTo3U/exec';
-let TOKEN=sessionStorage.getItem('mjc48-token')||'', ME=null, LOADED=false, _t;
+let TOKEN=localStorage.getItem('mjc48-token')||'', ME=null, LOADED=false, _t;
 async function api(op,data){
   const r=await fetch(API,{method:'POST',body:JSON.stringify({token:TOKEN,op,data})});
   return r.json();
@@ -947,7 +947,7 @@ function applyRole(){
   if(ME){ nm.textContent=ME.name||ME.username; rl.textContent=ME.role==='admin'?'Admin (akses penuh)':(ME.role==='member'?'Member':'Manager'); document.getElementById('nav-tasks-txt').textContent=ME.role==='member'?'Tugas Saya':'Tugas Member'; av.textContent=(ME.name||ME.username)[0].toUpperCase(); }
   const ua=document.getElementById('users-panel'); if(ua) ua.style.display=ME&&ME.role==='admin'?'':'none';
 }
-function logout(){ sessionStorage.removeItem('mjc48-token'); location.reload(); }
+function logout(){ localStorage.removeItem('mjc48-token'); location.reload(); }
 async function doLogin(silent){
   const err=document.getElementById('login-err');
   try{
@@ -957,10 +957,11 @@ async function doLogin(silent){
       err.textContent='Memeriksa…';
       const l=await (await fetch(API,{method:'POST',body:JSON.stringify({op:'login',username:u,password:p})})).json();
       if(!l.ok) throw new Error(l.error);
-      TOKEN=l.token; sessionStorage.setItem('mjc48-token',TOKEN);
+      TOKEN=l.token; localStorage.setItem('mjc48-token',TOKEN);
     }
     const r=await api('load');
-    if(!r.ok) throw new Error(r.error);
+    if(!r.ok) throw Object.assign(new Error(r.error),{expired:!!r.expired});
+    if(r.token){ TOKEN=r.token; localStorage.setItem('mjc48-token',TOKEN); }
     const d=r.data; ME=r.user;
     store.hero=Object.assign({},store.hero,d.hero);
     store.teams=Object.assign({miii:false,jii:false,cii:false,trainee:false},d.teams);
@@ -969,8 +970,10 @@ async function doLogin(silent){
     LOADED=true; initUI(); renderMedia(); applyRole(); try{agendaBanner();}catch(e){} afterLogin(r);
     document.getElementById('login').style.display='none';
   }catch(e){
-    sessionStorage.removeItem('mjc48-token'); TOKEN='';
-    err.textContent=silent?'':(e.message||'Gagal terhubung ke server');
+    // token hanya dibuang kalau server bilang sesi habis / login manual gagal, bukan karena koneksi lambat
+    if(!silent||e.expired){ localStorage.removeItem('mjc48-token'); TOKEN=''; }
+    else if(!window._retried){ window._retried=true; setTimeout(()=>doLogin(true),1500); return; }
+    err.textContent=e.expired?'Sesi habis, silakan login lagi.':(silent?'Koneksi ke server bermasalah. Tekan Masuk untuk coba lagi.':(e.message||'Gagal terhubung ke server'));
   }
 }
 function saveStore(){
@@ -1561,6 +1564,14 @@ async function reviewUser(n,ok){
   const r=await api('username_review',{username:n,approve:ok}); if(!r.ok) return showToast(r.error,'error');
   USERS=r.users; renderUsers(); showToast(ok?'Username diganti':'Permintaan ditolak','success');
 }
+
+/* ===== SESI: perpanjang otomatis selama masih aktif ===== */
+let _act=Date.now();
+['click','keydown','mousemove','touchstart','scroll'].forEach(ev=>window.addEventListener(ev,()=>{_act=Date.now();},{passive:true}));
+setInterval(async()=>{
+  if(!TOKEN||!LOADED||Date.now()-_act>30*60000) return;   // hanya kalau ada aktivitas 30 menit terakhir
+  try{ const r=await api('ping'); if(r.ok&&r.token){ TOKEN=r.token; localStorage.setItem('mjc48-token',TOKEN); } }catch(e){}
+},10*60000);
 </script>
-</body>
+<div style="position:fixed;right:10px;bottom:6px;font-size:10px;opacity:.45;z-index:9999;pointer-events:none">v2026.10.21-8</div></body>
 </html>
