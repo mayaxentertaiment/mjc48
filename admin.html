@@ -769,10 +769,11 @@ tr.u-suspended td:last-child,tr.u-suspended td.u-keep{opacity:1;}
           <div class="panel-body">
             <div class="form-group"><label class="form-label">Username</label><input class="form-input" id="u-name" placeholder="contoh: manager-miii" autocapitalize="none"></div>
             <div class="form-group"><label class="form-label">Nama</label><input class="form-input" id="u-full" placeholder="Nama lengkap"></div>
-            <div class="form-group"><label class="form-label">Role</label><select class="form-select" id="u-role" onchange="userRoleUI()"><option value="manager">Manager (member &amp; jadwal)</option><option value="admin">Admin (akses penuh)</option><option value="member">Member (lihat tugas sendiri)</option></select></div>
+            <div class="form-group"><label class="form-label">Role</label><select class="form-select" id="u-role" onchange="userRoleUI()"><option value="manager">Manager (member &amp; jadwal)</option><option value="admin">Admin (akses penuh)</option><option value="member">Member (lihat tugas sendiri)</option><option value="editor">Editor (intranet staff)</option></select></div>
+            <div class="form-group" id="u-div-wrap" style="display:none"><label class="form-label">Jenis editor</label><select class="form-select" id="u-div"><option value="editor_foto">Editor Foto</option><option value="editor_video">Editor Video</option><option value="kreatif">Kreatif (thumbnail &amp; desain)</option></select><div class="form-hint">Akun editor dipakai untuk login di intranet staff (bukan panel ini). Password minimal 8 karakter, wajib diganti saat login pertama.</div></div>
             <div class="form-group" id="u-member-wrap" style="display:none"><label class="form-label">Member yang terhubung</label><select class="form-select" id="u-member"></select></div>
-            <div class="form-group"><label class="form-label">Tim yang dipegang (untuk Manager)</label><div style="display:flex;gap:14px;flex-wrap:wrap;font-size:13.5px;"><label><input type="checkbox" class="u-team" value="miii"> MIII</label><label><input type="checkbox" class="u-team" value="jii"> JII</label><label><input type="checkbox" class="u-team" value="cii"> CII</label><label><input type="checkbox" class="u-team" value="trainee"> Trainee</label></div></div>
-            <div class="form-group"><label class="form-label">Email manager (tujuan reminder agenda tim)</label><input class="form-input" id="u-email" type="email" placeholder="nama@gmail.com"></div>
+            <div class="form-group" id="u-team-wrap"><label class="form-label">Tim yang dipegang (untuk Manager)</label><div style="display:flex;gap:14px;flex-wrap:wrap;font-size:13.5px;"><label><input type="checkbox" class="u-team" value="miii"> MIII</label><label><input type="checkbox" class="u-team" value="jii"> JII</label><label><input type="checkbox" class="u-team" value="cii"> CII</label><label><input type="checkbox" class="u-team" value="trainee"> Trainee</label></div></div>
+            <div class="form-group" id="u-email-wrap"><label class="form-label">Email (manager: tujuan reminder agenda; editor: notifikasi intranet)</label><input class="form-input" id="u-email" type="email" placeholder="nama@gmail.com"></div>
             <div class="form-group"><label class="form-label">Password</label><input class="form-input" id="u-pass" type="password" autocomplete="new-password" placeholder="Minimal 6 karakter"></div>
             <button class="btn btn-primary" onclick="saveUser()">Simpan Akun</button>
           </div>
@@ -952,7 +953,17 @@ async function putFile_(path,b64,mime){
   chk(await sb.storage.from('photos').upload(path,b64Blob_(b64,mime),{contentType:mime,upsert:false}));
   return sb.storage.from('photos').getPublicUrl(path).data.publicUrl;
 }
-async function listUsers_(){ return chk(await sb.from('profiles').select('*').order('username')).map(pub); }
+const DVL_={editor_foto:'Editor Foto',editor_video:'Editor Video',kreatif:'Kreatif'};
+async function listUsers_(){
+  const base=chk(await sb.from('profiles').select('*').order('username')).map(pub), have=new Set(base.map(u=>u.username));
+  let ed=[]; try{ const r=await sb.from('staff_profiles').select('*').eq('staff_role','editor').order('nama'); ed=r.error?[]:(r.data||[]); }catch(e){}
+  return base.concat(ed.filter(e=>e.username&&!have.has(e.username)).map(e=>({username:e.username,name:e.nama,role:'editor',divisi:e.divisi||'',staffId:e.id,teams:'',email:e.email_kontak||'',status:e.aktif===false?'suspended':'active',memberId:'',phone:'',bio:'',photo:'',reqUsername:'',joined:''})));
+}
+async function ks_(body){   // Edge Function milik intranet untuk kelola akun editor
+  const r=await sb.functions.invoke('kelola-staff',{body});
+  if(r.error){ let m=r.error.message; try{ m=(await r.error.context.json()).error||m; }catch(e){} throw new Error(m); }
+  return r.data;
+}
 async function fn_(op,data){   // operasi yang butuh hak khusus -> Edge Function 'admin-users'
   const r=await sb.functions.invoke('admin-users',{body:{op,data}});
   if(r.error) throw new Error('Fungsi server "admin-users" belum bisa dipanggil: '+r.error.message);
@@ -1120,7 +1131,11 @@ const OPS={
   async users_list(){ return {ok:true,users:await listUsers_()}; },
   async user_status(d){
     const off=d.status==='suspended', us=chk(await sb.from('profiles').select('*')), u=us.find(x=>x.username===S_(d.username));
-    if(!u) return {ok:false,error:'Akun tidak ditemukan'};
+    if(!u){
+      const ed=(await listUsers_()).find(x=>x.role==='editor'&&x.username===S_(d.username));
+      if(!ed) return {ok:false,error:'Akun tidak ditemukan'};
+      await ks_({action:'status',id:ed.staffId,aktif:!off}); return {ok:true,users:await listUsers_()};
+    }
     if(off&&u.username===ME.username) return {ok:false,error:'Tidak bisa menangguhkan akun sendiri'};
     if(off&&u.role==='admin'&&u.status==='active'&&us.filter(x=>x.role==='admin'&&x.status==='active').length<2) return {ok:false,error:'Harus tersisa minimal satu admin aktif'};
     chk(await sb.from('profiles').update({status:off?'suspended':'active'}).eq('id',u.id));
@@ -1129,7 +1144,22 @@ const OPS={
   async user_save(d){
     const uname=S_(d.username).trim().toLowerCase();
     if(!UNAME_.test(uname)) return {ok:false,error:'Username 3-30 karakter: huruf kecil, angka, titik, strip, garis bawah'};
-    if(['admin','manager','member'].indexOf(d.role)<0) return {ok:false,error:'Role tidak valid'};
+    if(['admin','manager','member','editor'].indexOf(d.role)<0) return {ok:false,error:'Role tidak valid'};
+    if(d.role==='editor'){
+      if(['editor_foto','editor_video','kreatif'].indexOf(d.divisi)<0) return {ok:false,error:'Pilih jenis editor'};
+      const nama=S_(d.name).trim(); if(!nama) return {ok:false,error:'Nama wajib diisi'};
+      const em=S_(d.email).trim(); if(em&&!MAILRE_.test(em)) return {ok:false,error:'Format email tidak valid'};
+      const pw=S_(d.password), all=await listUsers_(), exE=all.find(x=>x.username===uname);
+      if(exE&&exE.role!=='editor') return {ok:false,error:'Username sudah dipakai akun '+exE.role+'. Pakai username lain.'};
+      if(!exE){
+        if(pw.length<8) return {ok:false,error:'Password awal editor minimal 8 karakter'};
+        await ks_({action:'buat',nama,username:uname,password:pw,email:em,staff_role:'editor',divisi:d.divisi});
+      }else{
+        chk(await sb.from('staff_profiles').update({nama,divisi:d.divisi,email_kontak:em||null}).eq('id',exE.staffId));
+        if(pw){ if(pw.length<8) return {ok:false,error:'Password minimal 8 karakter'}; await ks_({action:'reset_password',id:exE.staffId,password:pw}); }
+      }
+      return {ok:true,users:await listUsers_()};
+    }
     let teams=(Array.isArray(d.teams)?d.teams:[]).filter(x=>TEAMKEYS_.indexOf(x)>=0), memberId=null;
     if(d.role==='member'){
       const mm=store.members.find(x=>String(x.id)===String(d.memberId));
@@ -1144,7 +1174,11 @@ const OPS={
     chk(await sb.from('profiles').update({name:S_(d.name).trim()||ex.name,role:d.role,teams,email,member_id:memberId}).eq('id',ex.id));
     return {ok:true,users:await listUsers_()};
   },
-  async user_del(d){ return fn_('user_del',d); },
+  async user_del(d){
+    const ed=(await listUsers_()).find(x=>x.role==='editor'&&x.username===S_(d.username));
+    if(ed){ await ks_({action:'hapus',id:ed.staffId}); return {ok:true}; }
+    return fn_('user_del',d);
+  },
   async username_review(d){ return fn_('username_review',d); }
 };
 async function api(op,data){
@@ -1166,11 +1200,7 @@ function applyRole(){
   if(ME){ nm.textContent=ME.name||ME.username; rl.textContent=ME.role==='admin'?'Admin (akses penuh)':(ME.role==='member'?'Member':'Manager'); document.getElementById('nav-tasks-txt').textContent=ME.role==='member'?'Tugas Saya':'Tugas Member'; av.textContent=(ME.name||ME.username)[0].toUpperCase(); }
   const ua=document.getElementById('users-panel'); if(ua) ua.style.display=ME&&ME.role==='admin'?'':'none';
 }
-async function logout(){
-  try{ await Promise.race([sb.auth.signOut({scope:'local'}),new Promise(r=>setTimeout(r,1500))]); }catch(e){}
-  try{ Object.keys(localStorage).filter(k=>k.startsWith('sb-')).forEach(k=>localStorage.removeItem(k)); }catch(e){}
-  location.replace(location.pathname);
-}
+function logout(){ sb.auth.signOut().finally(()=>location.reload()); }
 async function doLogin(silent){
   const err=document.getElementById('login-err');
   try{
@@ -1281,7 +1311,7 @@ async function renderUsers(){
   if(!ME||ME.role!=='admin') return;
   const r=await api('users_list'); if(!r.ok) return showToast(r.error,'error');
   USERS=r.users;
-  renderReq();document.getElementById('users-tbody').innerHTML=USERS.map(u=>{const on=u.status!=='suspended',self=ME&&u.username===ME.username;return `<tr class="${on?'':'u-suspended'}"><td><b>${esc(u.username)}</b></td><td>${esc(u.name)}</td><td>${u.role==='admin'?'Admin':'Manager'}</td><td>${u.role==='admin'?'Semua':(u.teams||'—').toUpperCase().replace(/,/g,', ')}</td><td>${esc(u.email||'—')}</td><td class="u-keep"><div class="u-status"><label class="toggle" title="${self?'Tidak bisa menangguhkan akun sendiri':(on?'Matikan untuk menangguhkan':'Nyalakan untuk mengaktifkan')}"><input type="checkbox" ${on?'checked':''} ${self?'disabled':''} onchange="setStatus('${esc(u.username)}',this.checked)"><span class="toggle-slider"></span></label><span class="${on?'badge-on':'badge-off'}">${on?'Aktif':'Ditangguhkan'}</span></div></td><td class="u-keep"><div style="display:flex;gap:6px;"><button class="btn btn-ghost btn-sm" onclick="editUser('${esc(u.username)}')">Edit</button>${u.role==='manager'?`<button class="btn btn-ghost btn-sm" onclick="openNotice('${esc(u.username)}')">⚠ Teguran</button>`:''}<button class="btn btn-danger btn-sm" onclick="delUser('${esc(u.username)}')">Hapus</button></div></td></tr>`;}).join('');
+  renderReq();document.getElementById('users-tbody').innerHTML=USERS.map(u=>{const on=u.status!=='suspended',self=ME&&u.username===ME.username;return `<tr class="${on?'':'u-suspended'}"><td><b>${esc(u.username)}</b></td><td>${esc(u.name)}</td><td>${u.role==='admin'?'Admin':u.role==='editor'?'Editor':u.role==='member'?'Member':'Manager'}</td><td>${u.role==='admin'?'Semua':u.role==='editor'?esc(DVL_[u.divisi]||'—'):(u.teams||'—').toUpperCase().replace(/,/g,', ')}</td><td>${esc(u.email||'—')}</td><td class="u-keep"><div class="u-status"><label class="toggle" title="${self?'Tidak bisa menangguhkan akun sendiri':(on?'Matikan untuk menangguhkan':'Nyalakan untuk mengaktifkan')}"><input type="checkbox" ${on?'checked':''} ${self?'disabled':''} onchange="setStatus('${esc(u.username)}',this.checked)"><span class="toggle-slider"></span></label><span class="${on?'badge-on':'badge-off'}">${on?'Aktif':'Ditangguhkan'}</span></div></td><td class="u-keep"><div style="display:flex;gap:6px;"><button class="btn btn-ghost btn-sm" onclick="editUser('${esc(u.username)}')">Edit</button>${u.role==='manager'?`<button class="btn btn-ghost btn-sm" onclick="openNotice('${esc(u.username)}')">⚠ Teguran</button>`:''}<button class="btn btn-danger btn-sm" onclick="delUser('${esc(u.username)}')">Hapus</button></div></td></tr>`;}).join('');
 }
 function esc(t){return String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 async function setStatus(n,on){
@@ -1294,15 +1324,15 @@ function editUser(n){
   document.getElementById('u-name').value=u.username; document.getElementById('u-name').readOnly=true;
   document.getElementById('u-full').value=u.name; document.getElementById('u-role').value=u.role;
   document.getElementById('u-pass').value=''; document.getElementById('u-pass').placeholder='Kosongkan jika tidak diganti';
-  document.getElementById('u-email').value=u.email||''; userRoleUI(u.memberId); const ts=(u.teams||'').split(','); document.querySelectorAll('.u-team').forEach(c=>c.checked=ts.includes(c.value));
+  document.getElementById('u-email').value=u.email||''; if(u.role==='editor') document.getElementById('u-div').value=u.divisi||'editor_foto'; userRoleUI(u.memberId); const ts=(u.teams||'').split(','); document.querySelectorAll('.u-team').forEach(c=>c.checked=ts.includes(c.value));
   window.scrollTo(0,0);
 }
 function resetUserForm(){
   userRoleUI(); ['u-name','u-full','u-pass','u-email'].forEach(i=>document.getElementById(i).value=''); document.querySelectorAll('.u-team').forEach(c=>c.checked=false);
-  document.getElementById('u-name').readOnly=false; document.getElementById('u-pass').placeholder='Minimal 6 karakter';
+  document.getElementById('u-name').readOnly=false; document.getElementById('u-pass').placeholder='Minimal 6 karakter (editor: 8)';
 }
 async function saveUser(){
-  const d={username:document.getElementById('u-name').value,name:document.getElementById('u-full').value,role:document.getElementById('u-role').value,password:document.getElementById('u-pass').value,email:document.getElementById('u-email').value,memberId:document.getElementById('u-member').value,teams:[...document.querySelectorAll('.u-team:checked')].map(c=>c.value)};
+  const d={username:document.getElementById('u-name').value,name:document.getElementById('u-full').value,role:document.getElementById('u-role').value,divisi:document.getElementById('u-div').value,password:document.getElementById('u-pass').value,email:document.getElementById('u-email').value,memberId:document.getElementById('u-member').value,teams:[...document.querySelectorAll('.u-team:checked')].map(c=>c.value)};
   const r=await api('user_save',d);
   if(!r.ok) return showToast(r.error,'error');
   showToast('Akun disimpan','success'); resetUserForm(); renderUsers();
@@ -1718,7 +1748,10 @@ function afterLogin(r){
 async function ackNotices(){ await api('notice_read'); closeModal('modal-inbox'); }
 function userRoleUI(sel){
   const el=document.getElementById('u-member'), mem=document.getElementById('u-role').value==='member', cur=sel||el.value;
+  const rl=document.getElementById('u-role').value, ed=rl==='editor';
   document.getElementById('u-member-wrap').style.display=mem?'':'none';
+  document.getElementById('u-div-wrap').style.display=ed?'':'none';
+  document.getElementById('u-team-wrap').style.display=(ed||rl==='admin')?'none':'';
   el.innerHTML=store.members.map(m=>`<option value="${esc(m.id)}">${esc(m.nick||m.name)} (${esc(TN[m.team]||m.team)})</option>`).join(''); if(cur) el.value=cur;
 }
 
