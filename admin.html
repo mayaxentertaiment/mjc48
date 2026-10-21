@@ -922,6 +922,7 @@ tr.u-suspended td:last-child,tr.u-suspended td.u-keep{opacity:1;}
 
 <div class="toast-container" id="toast-container"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
 /* DATA STORE */
 let store = {
@@ -931,12 +932,230 @@ let store = {
   members:[],
   teams:{ miii:false, jii:false, cii:false, trainee:false }
 };
-/* API — GANTI dengan URL /exec dari Apps Script */
-const API='https://script.google.com/macros/s/AKfycbwtWUZX3G4JsjO_9RHiWPAVJQA3wiobisfs9O7XmF8w9LD2CuXLFOscB5DQGBsTo3U/exec';
-let TOKEN=localStorage.getItem('mjc48-token')||'', ME=null, LOADED=false, _t;
+/* ===== SUPABASE (pengganti Apps Script) ===== */
+const SB_URL='https://kkdmlotknjsxmifblewy.supabase.co';
+const SB_KEY='sb_publishable_ki6C8vqsE--EFbHvjHMPbA_rEkmRKFs';
+const sb=supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
+const LOGIN_DOMAIN='@mjc48.com';
+let TOKEN='', ME=null, LOADED=false, _t, SNAP=null;
+
+const S_=v=>v==null?'':String(v);
+const num_=v=>(v===''||v==null)?null:Number(v);
+const p2_=n=>String(n).padStart(2,'0');
+const today_=()=>{const d=new Date();return d.getFullYear()+'-'+p2_(d.getMonth()+1)+'-'+p2_(d.getDate());};
+const now_=()=>{const d=new Date();return today_()+' '+p2_(d.getHours())+':'+p2_(d.getMinutes());};
+const MAILRE_=/^[^@\s]+@[^@\s]+\.[^@\s]+$/, UNAME_=/^[a-z0-9_.-]{3,30}$/, TEAMKEYS_=['miii','jii','cii','trainee'];
+function chk(r){ if(r.error) throw r.error; return r.data; }
+function pub(p){ return {username:p.username,name:p.name,role:p.role,teams:(p.teams||[]).join(','),email:p.email||'',status:p.status,memberId:p.member_id==null?'':String(p.member_id),phone:p.phone||'',bio:p.bio||'',photo:p.photo||'',reqUsername:p.req_username||'',joined:p.joined||''}; }
+function b64Blob_(b64,mime){ const bin=atob(b64), a=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) a[i]=bin.charCodeAt(i); return new Blob([a],{type:mime}); }
+async function putFile_(path,b64,mime){
+  chk(await sb.storage.from('photos').upload(path,b64Blob_(b64,mime),{contentType:mime,upsert:false}));
+  return sb.storage.from('photos').getPublicUrl(path).data.publicUrl;
+}
+async function listUsers_(){ return chk(await sb.from('profiles').select('*').order('username')).map(pub); }
+async function fn_(op,data){   // operasi yang butuh hak khusus -> Edge Function 'admin-users'
+  const r=await sb.functions.invoke('admin-users',{body:{op,data}});
+  if(r.error) throw new Error('Fungsi server "admin-users" belum bisa dipanggil: '+r.error.message);
+  return r.data;
+}
+
+async function mail_(op,data){   // email lewat Edge Function 'notify' (gagal kirim tidak boleh mengganggu aksi utama)
+  try{ const r=await sb.functions.invoke('notify',{body:{op,data}}); return r.error?{ok:false,error:'Email: '+r.error.message}:r.data; }
+  catch(e){ return {ok:false,error:'Email: '+S_(e&&e.message||e)}; }
+}
+
+/* snapshot & diff: hanya baris yang berubah yang dikirim (hemat & aman untuk RLS manager) */
+const ROW={
+  member:m=>({id:Number(m.id),name:S_(m.name),nick:S_(m.nick),team:S_(m.team),gen:S_(m.gen),dob:S_(m.dob),photo:S_(m.photo),pz:S_(m.pz),px:S_(m.px),py:S_(m.py)}),
+  news:n=>({id:Number(n.id),title:S_(n.title),tag:S_(n.tag),date:S_(n.date),body:S_(n.body),status:n.status==='published'?'published':'draft'}),
+  sched:s=>({id:Number(s.id),title:S_(s.title),date:S_(s.date),time:S_(s.time),venue:S_(s.venue),team:S_(s.team),type:S_(s.type),member:num_(s.member)})
+};
+function diff_(rows,snap){
+  const cur={},up=[];
+  rows.forEach(r=>{cur[r.id]=JSON.stringify(r); if(snap[r.id]!==cur[r.id]) up.push(r);});
+  return {up,cur,del:Object.keys(snap).filter(id=>!(id in cur)).map(Number)};
+}
+function snapOf_(d){
+  const o=(rows,f)=>{const m={};(rows||[]).map(f).forEach(r=>m[r.id]=JSON.stringify(r));return m;};
+  return {members:o(d.members,ROW.member),news:o(d.news,ROW.news),schedule:o(d.schedule,ROW.sched),
+          settings:{hero:JSON.stringify(d.hero||{}),teams:JSON.stringify(d.teams||{}),site:JSON.stringify(d.site||{}),media:JSON.stringify(d.media||[])}};
+}
+async function saveNow_(d){
+  const admin=ME&&ME.role==='admin';
+  const mem=diff_((d.members||[]).map(ROW.member),SNAP.members);
+  const sch=diff_((d.schedule||[]).map(ROW.sched),SNAP.schedule);
+  const nws=admin?diff_((d.news||[]).map(ROW.news),SNAP.news):null;
+  if(mem.up.length) chk(await sb.from('members').upsert(mem.up));
+  if(nws&&nws.up.length) chk(await sb.from('news').upsert(nws.up));
+  const newSch=sch.up.filter(r=>!(r.id in SNAP.schedule)).map(r=>r.id);
+  if(sch.up.length) chk(await sb.from('schedule').upsert(sch.up));
+  if(sch.del.length) chk(await sb.from('schedule').delete().in('id',sch.del));
+  if(nws&&nws.del.length) chk(await sb.from('news').delete().in('id',nws.del));
+  if(mem.del.length) chk(await sb.from('members').delete().in('id',mem.del));
+  SNAP.members=mem.cur; SNAP.schedule=sch.cur; if(nws) SNAP.news=nws.cur;
+  if(newSch.length) mail_('agenda_new',{ids:newSch});
+  if(admin){
+    const vals={hero:d.hero||{},teams:d.teams||{},site:d.site||{maintenance:false,msg:''},media:d.media||[]};
+    const up=Object.keys(vals).filter(k=>JSON.stringify(vals[k])!==SNAP.settings[k]).map(k=>({key:k,value:vals[k]}));
+    if(up.length){ chk(await sb.from('settings').upsert(up)); up.forEach(x=>SNAP.settings[x.key]=JSON.stringify(x.value)); }
+  }
+  return {ok:true};
+}
+let _saveChain=Promise.resolve();
+
+const OPS={
+  async load(){
+    const {data:{session}}=await sb.auth.getSession();
+    if(!session) return {ok:false,error:'Sesi habis, silakan login lagi',expired:true};
+    const p=chk(await sb.from('profiles').select('*').eq('id',session.user.id).maybeSingle());
+    if(!p) return {ok:false,error:'Akun belum punya profil. Hubungi admin.',expired:true};
+    if(p.status!=='active'){ await sb.auth.signOut(); return {ok:false,error:'Akun ini sedang ditangguhkan. Hubungi admin untuk mengaktifkan kembali.',expired:true}; }
+    const [st,news,sch,mem,nt]=await Promise.all([
+      sb.from('settings').select('key,value'), sb.from('news').select('*'), sb.from('schedule').select('*'),
+      sb.from('members').select('*'), sb.from('notices').select('*').eq('to_user',p.id).eq('read',false)
+    ]);
+    const s={}; chk(st).forEach(x=>s[x.key]=x.value);
+    const data={
+      hero:s.hero||{}, teams:s.teams||{miii:false,jii:false,cii:false,trainee:false}, site:s.site||{maintenance:false,msg:''}, media:s.media||[],
+      news:chk(news), members:chk(mem),
+      schedule:chk(sch).map(r=>Object.assign(r,{member:r.member==null?'':String(r.member)}))
+    };
+    SNAP=snapOf_(data);
+    return {ok:true,user:pub(p),data,notices:chk(nt).map(n=>({id:n.id,from:n.from_name,text:n.text,date:n.date}))};
+  },
+  async ping(){ await sb.auth.getSession(); return {ok:true}; },
+  save(d){ const p=_saveChain.then(()=>saveNow_(d)); _saveChain=p.catch(()=>{}); return p; },
+
+  async upload(d){
+    const mime=/^image\/(png|jpeg|webp|gif|svg\+xml)$/.test(d.mime)?d.mime:'image/jpeg';
+    const ext={'image/png':'png','image/jpeg':'jpg','image/webp':'webp','image/gif':'gif','image/svg+xml':'svg'}[mime];
+    const nm=S_(d.name||'file').replace(/[^\w.-]/g,'_').replace(/\.\w+$/,'');
+    return {ok:true,url:await putFile_('uploads/'+nm+'-'+Date.now()+'.'+ext,d.base64,mime)};
+  },
+
+  /* ---- tugas ---- */
+  async tasks(){
+    const ts=chk(await sb.from('tasks').select('*').order('created',{ascending:false}));
+    return {ok:true,tasks:ts.map(t=>({id:t.id,memberId:String(t.member_id),title:t.title,due:t.due,note:t.note,status:t.status,progress:t.progress,by:t.by_name,created:t.created,subNote:t.sub_note,subLink:t.sub_link,subAt:t.sub_at}))};
+  },
+  async task_update(d){
+    if(['todo','doing','done'].indexOf(d.status)<0) return {ok:false,error:'Status tidak valid'};
+    const pr=d.status==='done'?100:Math.max(0,Math.min(100,Number(d.progress)||0));
+    const r=chk(await sb.from('tasks').update({status:d.status,progress:pr}).eq('id',d.id).select('id'));
+    return r.length?{ok:true}:{ok:false,error:'Tugas tidak ditemukan'};
+  },
+  async task_submit(d){
+    const note=S_(d.note).trim().slice(0,2000), link=S_(d.link).trim().slice(0,500);
+    if(!note&&!link) return {ok:false,error:'Isi catatan atau tempel link hasil kerjamu'};
+    if(link&&!/^https?:\/\/\S+$/.test(link)) return {ok:false,error:'Link harus diawali http:// atau https://'};
+    const r=chk(await sb.from('tasks').update({sub_note:note,sub_link:link,status:'done',progress:100,sub_at:now_()}).eq('id',d.id).select('id'));
+    if(r.length) mail_('task_submitted',{id:d.id});
+    return r.length?{ok:true}:{ok:false,error:'Tugas tidak ditemukan'};
+  },
+  async task_save(d){
+    const title=S_(d.title).trim(); if(!title) return {ok:false,error:'Judul tugas wajib diisi'};
+    const row={member_id:Number(d.memberId),title,due:d.due||'',note:d.note||''};
+    if(d.id){ const r=chk(await sb.from('tasks').update(row).eq('id',d.id).select('id')); return r.length?{ok:true}:{ok:false,error:'Tugas tidak ditemukan'}; }
+    const {data:{user}}=await sb.auth.getUser();
+    const nt=chk(await sb.from('tasks').insert(Object.assign(row,{status:'todo',progress:0,by_user:user.id,by_name:ME.username,created:today_()})).select('id').single());
+    mail_('task_new',{id:nt.id});
+    return {ok:true};
+  },
+  async task_del(d){
+    const r=chk(await sb.from('tasks').delete().eq('id',d.id).select('id'));
+    return r.length?{ok:true}:{ok:false,error:'Tugas tidak ditemukan'};
+  },
+
+  /* ---- teguran ---- */
+  async notice_read(){
+    const {data:{user}}=await sb.auth.getUser();
+    chk(await sb.from('notices').update({read:true}).eq('to_user',user.id));
+    return {ok:true};
+  },
+  async notice_send(d){
+    const text=S_(d.text).trim(); if(!text) return {ok:false,error:'Isi teguran wajib diisi'};
+    const to=chk(await sb.from('profiles').select('id').eq('username',S_(d.to)).maybeSingle());
+    if(!to) return {ok:false,error:'Akun tidak ditemukan'};
+    const nn=chk(await sb.from('notices').insert({to_user:to.id,from_name:ME.name||ME.username,text,date:today_()}).select('id').single());
+    const mr=await mail_('notice',{id:nn.id});
+    return {ok:true,mailed:!!(mr&&mr.mailed)};
+  },
+
+  /* ---- profil ---- */
+  async profile_save(d){
+    const name=S_(d.name).trim(); if(name.length<2||name.length>60) return {ok:false,error:'Nama 2-60 karakter'};
+    const phone=S_(d.phone).trim(); if(!/^[0-9+\-\s()]{0,20}$/.test(phone)) return {ok:false,error:'No. HP hanya angka, + - ( ) dan spasi'};
+    const {data:{user}}=await sb.auth.getUser();
+    const row={name,phone,bio:S_(d.bio).trim().slice(0,300)};
+    if(d.photoB64){
+      if(!/^image\/(png|jpeg|webp)$/.test(d.mime)||String(d.photoB64).length>1500000) return {ok:false,error:'Foto harus PNG/JPG/WebP dan maksimal ±1MB'};
+      row.photo=await putFile_(user.id+'/profil-'+Date.now()+'.'+(d.mime==='image/png'?'png':d.mime==='image/webp'?'webp':'jpg'),d.photoB64,d.mime);
+    }
+    return {ok:true,user:pub(chk(await sb.from('profiles').update(row).eq('id',user.id).select().single()))};
+  },
+  async username_request(d){
+    if(ME.role==='admin') return {ok:false,error:'Admin mengubah username lewat menu Akun'};
+    const nu=S_(d.username).trim().toLowerCase(), {data:{user}}=await sb.auth.getUser();
+    if(nu){
+      if(!UNAME_.test(nu)) return {ok:false,error:'Username 3-30 karakter: huruf kecil, angka, titik, strip, garis bawah'};
+      if(nu===ME.username) return {ok:false,error:'Itu username kamu sekarang'};
+    }
+    return {ok:true,user:pub(chk(await sb.from('profiles').update({req_username:nu}).eq('id',user.id).select().single()))};
+  },
+  async change_pw(d){
+    if(S_(d.pw).length<6) return {ok:false,error:'Password baru minimal 6 karakter'};
+    const chkOld=await sb.auth.signInWithPassword({email:ME.username+LOGIN_DOMAIN,password:S_(d.old)});
+    if(chkOld.error) return {ok:false,error:'Password lama salah'};
+    const r=await sb.auth.updateUser({password:S_(d.pw)});
+    return r.error?{ok:false,error:r.error.message}:{ok:true};
+  },
+  async set_email(d){
+    const em=S_(d.email).trim(); if(em&&!MAILRE_.test(em)) return {ok:false,error:'Format email tidak valid'};
+    const {data:{user}}=await sb.auth.getUser();
+    chk(await sb.from('profiles').update({email:em}).eq('id',user.id)); return {ok:true};
+  },
+  async remind_me(){ return await mail_('remind_me',{}); },
+
+  /* ---- kelola akun (admin) ---- */
+  async users_list(){ return {ok:true,users:await listUsers_()}; },
+  async user_status(d){
+    const off=d.status==='suspended', us=chk(await sb.from('profiles').select('*')), u=us.find(x=>x.username===S_(d.username));
+    if(!u) return {ok:false,error:'Akun tidak ditemukan'};
+    if(off&&u.username===ME.username) return {ok:false,error:'Tidak bisa menangguhkan akun sendiri'};
+    if(off&&u.role==='admin'&&u.status==='active'&&us.filter(x=>x.role==='admin'&&x.status==='active').length<2) return {ok:false,error:'Harus tersisa minimal satu admin aktif'};
+    chk(await sb.from('profiles').update({status:off?'suspended':'active'}).eq('id',u.id));
+    return {ok:true,users:await listUsers_()};
+  },
+  async user_save(d){
+    const uname=S_(d.username).trim().toLowerCase();
+    if(!UNAME_.test(uname)) return {ok:false,error:'Username 3-30 karakter: huruf kecil, angka, titik, strip, garis bawah'};
+    if(['admin','manager','member'].indexOf(d.role)<0) return {ok:false,error:'Role tidak valid'};
+    let teams=(Array.isArray(d.teams)?d.teams:[]).filter(x=>TEAMKEYS_.indexOf(x)>=0), memberId=null;
+    if(d.role==='member'){
+      const mm=store.members.find(x=>String(x.id)===String(d.memberId));
+      if(!mm) return {ok:false,error:'Pilih member untuk akun ini'};
+      memberId=Number(mm.id); teams=[mm.team];
+    }
+    const email=S_(d.email).trim(); if(email&&!MAILRE_.test(email)) return {ok:false,error:'Format email tidak valid'};
+    const pw=S_(d.password); if(pw&&pw.length<6) return {ok:false,error:'Password minimal 6 karakter'};
+    const us=chk(await sb.from('profiles').select('*')), ex=us.find(x=>x.username===uname);
+    if(!ex||pw) return fn_('user_save',Object.assign({},d,{username:uname,teams,memberId}));   // buat akun / ganti password -> butuh Edge Function
+    if(ex.role==='admin'&&d.role!=='admin'&&us.filter(x=>x.role==='admin'&&x.status==='active').length<2) return {ok:false,error:'Harus tersisa minimal satu admin'};
+    chk(await sb.from('profiles').update({name:S_(d.name).trim()||ex.name,role:d.role,teams,email,member_id:memberId}).eq('id',ex.id));
+    return {ok:true,users:await listUsers_()};
+  },
+  async user_del(d){ return fn_('user_del',d); },
+  async username_review(d){ return fn_('username_review',d); }
+};
 async function api(op,data){
-  const r=await fetch(API,{method:'POST',body:JSON.stringify({token:TOKEN,op,data})});
-  return r.json();
+  try{
+    if(!OPS[op]) return {ok:false,error:'Operasi tidak dikenal'};
+    return await OPS[op](data||{});
+  }catch(e){
+    const m=S_(e&&e.message||e), c=S_(e&&e.code);
+    if(c==='42501'||/row-level security|permission denied/i.test(m)) return {ok:false,error:'Tidak punya izin'};
+    return {ok:false,error:m,expired:/JWT|not authenticated|Auth session missing/i.test(m)};
+  }
 }
 const CAN_MANAGER=['dashboard','schedule-manager','member-manager','agenda','accounts','preview','tasks','profile'];
 function can(pid){ return !ME||ME.role==='admin'||(ME.role==='member'?(pid==='tasks'||pid==='profile'):CAN_MANAGER.includes(pid)); }
@@ -947,7 +1166,7 @@ function applyRole(){
   if(ME){ nm.textContent=ME.name||ME.username; rl.textContent=ME.role==='admin'?'Admin (akses penuh)':(ME.role==='member'?'Member':'Manager'); document.getElementById('nav-tasks-txt').textContent=ME.role==='member'?'Tugas Saya':'Tugas Member'; av.textContent=(ME.name||ME.username)[0].toUpperCase(); }
   const ua=document.getElementById('users-panel'); if(ua) ua.style.display=ME&&ME.role==='admin'?'':'none';
 }
-function logout(){ localStorage.removeItem('mjc48-token'); location.reload(); }
+function logout(){ sb.auth.signOut().finally(()=>location.reload()); }
 async function doLogin(silent){
   const err=document.getElementById('login-err');
   try{
@@ -955,13 +1174,12 @@ async function doLogin(silent){
       const u=document.getElementById('login-user').value.trim(), p=document.getElementById('login-pass').value;
       if(!u||!p){ err.textContent='Isi username dan password'; return; }
       err.textContent='Memeriksa…';
-      const l=await (await fetch(API,{method:'POST',body:JSON.stringify({op:'login',username:u,password:p})})).json();
-      if(!l.ok) throw new Error(l.error);
-      TOKEN=l.token; localStorage.setItem('mjc48-token',TOKEN);
+      const lg=await sb.auth.signInWithPassword({email:u.trim().toLowerCase()+LOGIN_DOMAIN,password:p});
+      if(lg.error) throw new Error('Username atau password salah');
+      TOKEN='1';
     }
     const r=await api('load');
     if(!r.ok) throw Object.assign(new Error(r.error),{expired:!!r.expired});
-    if(r.token){ TOKEN=r.token; localStorage.setItem('mjc48-token',TOKEN); }
     const d=r.data; ME=r.user;
     store.hero=Object.assign({},store.hero,d.hero);
     store.teams=Object.assign({miii:false,jii:false,cii:false,trainee:false},d.teams);
@@ -971,7 +1189,7 @@ async function doLogin(silent){
     document.getElementById('login').style.display='none';
   }catch(e){
     // token hanya dibuang kalau server bilang sesi habis / login manual gagal, bukan karena koneksi lambat
-    if(!silent||e.expired){ localStorage.removeItem('mjc48-token'); TOKEN=''; }
+    if(!silent||e.expired){ sb.auth.signOut(); TOKEN=''; }
     else if(!window._retried){ window._retried=true; setTimeout(()=>doLogin(true),1500); return; }
     err.textContent=e.expired?'Sesi habis, silakan login lagi.':(silent?'Koneksi ke server bermasalah. Tekan Masuk untuk coba lagi.':(e.message||'Gagal terhubung ke server'));
   }
@@ -1418,7 +1636,7 @@ function initUI(){
   });
   updateDashStats(); renderNews(); renderSchedule(); renderMembers();
 }
-window.addEventListener('DOMContentLoaded',()=>{ if(TOKEN) doLogin(true); });
+window.addEventListener('DOMContentLoaded',()=>{ sb.auth.getSession().then(({data})=>{ if(data.session){ TOKEN='1'; doLogin(true); } }); });
 
 /* ===== FOTO MEMBER (zoom/geser) ===== */
 const TC={miii:'#1E4FA0',jii:'#3A2E08',cii:'#C97A46',trainee:'#2F9BE0'};
@@ -1570,7 +1788,7 @@ let _act=Date.now();
 ['click','keydown','mousemove','touchstart','scroll'].forEach(ev=>window.addEventListener(ev,()=>{_act=Date.now();},{passive:true}));
 setInterval(async()=>{
   if(!TOKEN||!LOADED||Date.now()-_act>30*60000) return;   // hanya kalau ada aktivitas 30 menit terakhir
-  try{ const r=await api('ping'); if(r.ok&&r.token){ TOKEN=r.token; localStorage.setItem('mjc48-token',TOKEN); } }catch(e){}
+  try{ await api('ping'); }catch(e){}
 },10*60000);
 </script>
 <div style="position:fixed;right:10px;bottom:6px;font-size:10px;opacity:.45;z-index:9999;pointer-events:none">v2026.10.21-8</div></body>
