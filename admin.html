@@ -299,6 +299,12 @@ tr.u-suspended td:last-child,tr.u-suspended td.u-keep{opacity:1;}
 #login>div{border-radius:20px!important;box-shadow:0 40px 80px -20px rgba(0,0,0,.6);background:#fff!important;padding:40px 34px!important;}
 #login>div>div:first-child{font-family:'Inter',sans-serif!important;font-weight:800!important;letter-spacing:-.03em;}
 @media(max-width:860px){.sidebar{transform:translateX(-100%);}.main{margin-left:0;}}
+
+.sh-prev{width:150px;aspect-ratio:1/1.08;position:relative;overflow:hidden;margin:10px auto;clip-path:polygon(0% 0%,100% 0%,100% 68%,50% 100%,0% 68%);display:flex;align-items:center;justify-content:center;font:700 34px 'Fraunces',serif;color:#fff;}
+.sh-prev img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center bottom;transform-origin:center bottom;}
+.pz-row{display:flex;align-items:center;gap:10px;font-size:12.5px;margin:6px 0;}.pz-row span{width:64px;color:var(--ink-soft);}.pz-row input{flex:1;}
+.t-bar{height:8px;border-radius:99px;background:#E6E8F2;overflow:hidden;margin-top:6px;}.t-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--brand),var(--brand-2));}
+.t-late{color:var(--danger);font-weight:700;}
 </style>
 </head>
 <body>
@@ -354,6 +360,9 @@ tr.u-suspended td:last-child,tr.u-suspended td.u-keep{opacity:1;}
     </div>
     <div class="nav-item" data-page="agenda">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M4 1h1.5v1.5h5V1H12v1.5h1.5V14h-11V2.5H4V1zM4 6v6.5h8V6H4z"/></svg>Agenda &amp; Kalender
+    </div>
+    <div class="nav-item" data-page="tasks">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M2 2h12v12H2V2zm1.5 1.5v9h9v-9h-9zM7 10.5 4.8 8.3l1-1L7 8.5l3.2-3.2 1 1L7 10.5z"/></svg><span id="nav-tasks-txt">Tugas Member</span>
     </div>
     <div class="nav-item" data-page="accounts">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M8 8a3 3 0 100-6 3 3 0 000 6zm0 1c-3 0-5 1.5-5 3v1h10v-1c0-1.5-2-3-5-3z"/></svg>Akun
@@ -618,15 +627,16 @@ tr.u-suspended td:last-child,tr.u-suspended td.u-keep{opacity:1;}
     <!-- MEDIA MANAGER -->
     <div class="page" id="page-media-manager">
       <div class="panel">
-        <div class="panel-header"><span class="panel-title">Media &amp; Gambar</span><button class="btn btn-primary btn-sm" onclick="showToast('Upload file aktif','')">+ Upload Baru</button></div>
+        <div class="panel-header"><span class="panel-title">Media &amp; Gambar</span><button class="btn btn-primary btn-sm" onclick="document.getElementById('media-file').click()">+ Upload Baru</button></div>
         <div class="panel-body">
-          <div class="media-upload-zone" onclick="showToast('Drag & drop atau klik untuk pilih file','')">
+          <input type="file" id="media-file" accept="image/*" multiple style="display:none" onchange="uploadMedia(this.files);this.value=''">
+          <div class="media-upload-zone" onclick="document.getElementById('media-file').click()" ondragover="event.preventDefault()" ondrop="event.preventDefault();uploadMedia(event.dataTransfer.files)">
             <div class="muz-icon">📁</div>
             <div class="muz-text">Drag &amp; Drop atau klik untuk upload</div>
             <div class="muz-sub">PNG, JPG, WebP, SVG — Maks 5MB</div>
           </div>
           <div style="font-size:13px;font-weight:600;color:var(--ink-soft);margin-bottom:12px;">Aset Tersimpan</div>
-          <div class="media-grid">
+          <div class="media-grid"><div id="media-extra" style="display:contents"></div>
             <div class="media-item" style="background:var(--navy);">
               <div style="text-align:center;color:rgba(255,255,255,0.7);"><div style="font-size:22px;font-family:'Fraunces',serif;font-weight:700;">M</div><div style="font-size:9px;margin-top:3px;">MJC48</div></div>
               <div class="mi-name">logo-mjc48.png</div>
@@ -750,7 +760,8 @@ tr.u-suspended td:last-child,tr.u-suspended td.u-keep{opacity:1;}
           <div class="panel-body">
             <div class="form-group"><label class="form-label">Username</label><input class="form-input" id="u-name" placeholder="contoh: manager-miii" autocapitalize="none"></div>
             <div class="form-group"><label class="form-label">Nama</label><input class="form-input" id="u-full" placeholder="Nama lengkap"></div>
-            <div class="form-group"><label class="form-label">Role</label><select class="form-select" id="u-role"><option value="manager">Manager (member &amp; jadwal)</option><option value="admin">Admin (akses penuh)</option></select></div>
+            <div class="form-group"><label class="form-label">Role</label><select class="form-select" id="u-role" onchange="userRoleUI()"><option value="manager">Manager (member &amp; jadwal)</option><option value="admin">Admin (akses penuh)</option><option value="member">Member (lihat tugas sendiri)</option></select></div>
+            <div class="form-group" id="u-member-wrap" style="display:none"><label class="form-label">Member yang terhubung</label><select class="form-select" id="u-member"></select></div>
             <div class="form-group"><label class="form-label">Tim yang dipegang (untuk Manager)</label><div style="display:flex;gap:14px;flex-wrap:wrap;font-size:13.5px;"><label><input type="checkbox" class="u-team" value="miii"> MIII</label><label><input type="checkbox" class="u-team" value="jii"> JII</label><label><input type="checkbox" class="u-team" value="cii"> CII</label><label><input type="checkbox" class="u-team" value="trainee"> Trainee</label></div></div>
             <div class="form-group"><label class="form-label">Email manager (tujuan reminder agenda tim)</label><input class="form-input" id="u-email" type="email" placeholder="nama@gmail.com"></div>
             <div class="form-group"><label class="form-label">Password</label><input class="form-input" id="u-pass" type="password" autocomplete="new-password" placeholder="Minimal 6 karakter"></div>
@@ -766,6 +777,13 @@ tr.u-suspended td:last-child,tr.u-suspended td.u-keep{opacity:1;}
       </div>
     </div>
 
+    <div class="page" id="page-tasks">
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title" id="tasks-title">Tugas Member</span><button class="btn btn-primary btn-sm" id="task-add-btn" onclick="openTask()">+ Tugas Baru</button></div>
+        <div class="panel-body"><div id="tasks-sum" style="font-size:13px;color:var(--ink-soft);margin-bottom:14px;"></div>
+          <table class="member-table"><thead><tr><th>Member</th><th>Tugas</th><th>Tenggat</th><th>Status</th><th style="min-width:180px">Progress</th><th></th></tr></thead><tbody id="tasks-tbody"></tbody></table></div>
+      </div>
+    </div>
     <div class="page" id="page-preview">
       <div class="panel">
         <div class="panel-header"><span class="panel-title">Preview Web Publik</span><a href="index.html" target="_blank" class="btn btn-primary btn-sm">Buka di Tab Baru ↗</a></div>
@@ -825,16 +843,28 @@ tr.u-suspended td:last-child,tr.u-suspended td.u-keep{opacity:1;}
   </div>
 </div>
 
+<div class="modal-overlay" id="modal-task" onclick="if(event.target===this)closeModal('modal-task')"><div class="modal"><div class="modal-header"><span class="modal-title">Tugas Member</span><button class="modal-close" onclick="closeModal('modal-task')">✕</button></div><div class="modal-body">
+<div class="form-group"><label class="form-label">Member</label><select class="form-select" id="t-member"></select></div>
+<div class="form-group"><label class="form-label">Tugas</label><input class="form-input" id="t-title" placeholder="contoh: Hafalkan koreo lagu baru"></div>
+<div class="form-group"><label class="form-label">Tenggat</label><input class="form-input" id="t-due" type="date"></div>
+<div class="form-group"><label class="form-label">Catatan</label><textarea class="form-textarea" id="t-note" rows="3"></textarea></div></div>
+<div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-task')">Batal</button><button class="btn btn-primary" onclick="saveTask()">Simpan</button></div></div></div>
+<div class="modal-overlay" id="modal-notice" onclick="if(event.target===this)closeModal('modal-notice')"><div class="modal"><div class="modal-header"><span class="modal-title">⚠ Beri Teguran</span><button class="modal-close" onclick="closeModal('modal-notice')">✕</button></div><div class="modal-body">
+<p style="font-size:13px;color:var(--ink-soft);margin-bottom:10px;">Untuk: <b id="n-to-name"></b>. Teguran tampil di panel manager saat login dan dikirim ke emailnya.</p>
+<textarea class="form-textarea" id="n-text" rows="5" placeholder="Tulis isi teguran…"></textarea></div>
+<div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-notice')">Batal</button><button class="btn btn-primary" onclick="sendNotice()">Kirim Teguran</button></div></div></div>
+<div class="modal-overlay" id="modal-inbox"><div class="modal"><div class="modal-header"><span class="modal-title">⚠ Kamu menerima teguran</span></div><div class="modal-body" id="inbox-body"></div>
+<div class="modal-footer"><button class="btn btn-primary" onclick="ackNotices()">Saya mengerti</button></div></div></div>
 <div class="modal-overlay" id="modal-add-member" onclick="if(event.target===this)closeModal('modal-add-member')">
   <div class="modal">
     <div class="modal-header"><span class="modal-title">Tambah Member Baru</span><button class="modal-close" onclick="closeModal('modal-add-member')">✕</button></div>
     <div class="modal-body">
       <div class="form-row">
-        <div class="form-group"><label class="form-label">Nama Lengkap</label><input class="form-input" id="mi-name" placeholder="Nama lengkap…"></div>
+        <div class="form-group"><label class="form-label">Nama Lengkap</label><input class="form-input" id="mi-name" oninput="memPrev()" placeholder="Nama lengkap…"></div>
         <div class="form-group"><label class="form-label">Nama Panggung</label><input class="form-input" id="mi-nick" placeholder="Nama panggung…"></div>
       </div>
       <div class="form-row">
-        <div class="form-group"><label class="form-label">Tim</label><select class="form-select" id="mi-team"><option value="miii">Team MIII</option><option value="jii">Team JII</option><option value="cii">Team CII</option><option value="trainee">Trainee</option></select></div>
+        <div class="form-group"><label class="form-label">Tim</label><select class="form-select" id="mi-team" onchange="memPrev()"><option value="miii">Team MIII</option><option value="jii">Team JII</option><option value="cii">Team CII</option><option value="trainee">Trainee</option></select></div>
         <div class="form-group"><label class="form-label">Generasi</label><input class="form-input" id="mi-gen" placeholder="Gen 1…"></div>
       </div>
       <div class="form-group"><label class="form-label">Tanggal Lahir</label><input class="form-input" id="mi-dob" type="date"></div>
@@ -844,8 +874,12 @@ tr.u-suspended td:last-child,tr.u-suspended td.u-keep{opacity:1;}
         <div class="media-upload-zone" style="padding:16px;" onclick="document.getElementById('mi-photo-file').click()">
           <img id="mi-photo-prev" alt="" style="display:none;width:90px;height:90px;object-fit:cover;border-radius:50%;margin:0 auto 8px;">
           <div class="muz-text" id="mi-photo-txt" style="font-size:13px;">Klik untuk upload foto</div>
-          <div class="muz-sub">JPG, PNG, WebP — otomatis dikecilkan</div>
+          <div class="muz-sub">Disarankan PNG transparan — latar perisai tetap berwarna tim</div>
         </div>
+        <div class="sh-prev" id="sh-prev"><span id="sh-letter">K</span><img id="sh-img" alt="" style="display:none"></div>
+        <div class="pz-row"><span>Zoom</span><input type="range" id="pz-z" min="40" max="260" value="100" oninput="memPrev()"></div>
+        <div class="pz-row"><span>Geser ↔</span><input type="range" id="pz-x" min="-60" max="60" value="0" oninput="memPrev()"></div>
+        <div class="pz-row"><span>Geser ↕</span><input type="range" id="pz-y" min="-60" max="60" value="0" oninput="memPrev()"></div>
       </div>
       </div>
     </div>
@@ -865,19 +899,19 @@ let store = {
   teams:{ miii:false, jii:false, cii:false, trainee:false }
 };
 /* API — GANTI dengan URL /exec dari Apps Script */
-const API='https://script.google.com/macros/s/AKfycbwtWUZX3G4JsjO_9RHiWPAVJQA3wiobisfs9O7XmF8w9LD2CuXLFOscB5DQGBsTo3U/exec';
+const API='https://script.google.com/macros/s/AKfycbwtWUZX3G4JsjO_9RHiWPAVJQA3wiobisfs9O7XmF8w9LD2CuXLFOscB5DQGBsTo3U/exec;
 let TOKEN=sessionStorage.getItem('mjc48-token')||'', ME=null, LOADED=false, _t;
 async function api(op,data){
   const r=await fetch(API,{method:'POST',body:JSON.stringify({token:TOKEN,op,data})});
   return r.json();
 }
-const CAN_MANAGER=['dashboard','schedule-manager','member-manager','agenda','accounts','preview'];
-function can(pid){ return !ME||ME.role==='admin'||CAN_MANAGER.includes(pid); }
+const CAN_MANAGER=['dashboard','schedule-manager','member-manager','agenda','accounts','preview','tasks'];
+function can(pid){ return !ME||ME.role==='admin'||(ME.role==='member'?pid==='tasks':CAN_MANAGER.includes(pid)); }
 function applyRole(){
   document.querySelectorAll('.nav-item[data-page]').forEach(n=>n.style.display=can(n.dataset.page)?'':'none');
   document.querySelectorAll('.quick-card').forEach(c=>{const m=(c.getAttribute('onclick')||'').match(/goPage\('([^']+)'/); if(m&&!can(m[1])) c.style.display='none';});
   const nm=document.querySelector('.user-name'), rl=document.querySelector('.user-role'), av=document.querySelector('.user-avatar');
-  if(ME){ nm.textContent=ME.name||ME.username; rl.textContent=ME.role==='admin'?'Admin (akses penuh)':'Manager'; av.textContent=(ME.name||ME.username)[0].toUpperCase(); }
+  if(ME){ nm.textContent=ME.name||ME.username; rl.textContent=ME.role==='admin'?'Admin (akses penuh)':(ME.role==='member'?'Member':'Manager'); document.getElementById('nav-tasks-txt').textContent=ME.role==='member'?'Tugas Saya':'Tugas Member'; av.textContent=(ME.name||ME.username)[0].toUpperCase(); }
   const ua=document.getElementById('users-panel'); if(ua) ua.style.display=ME&&ME.role==='admin'?'':'none';
 }
 function logout(){ sessionStorage.removeItem('mjc48-token'); location.reload(); }
@@ -898,8 +932,8 @@ async function doLogin(silent){
     store.hero=Object.assign({},store.hero,d.hero);
     store.teams=Object.assign({miii:false,jii:false,cii:false,trainee:false},d.teams);
     store.site=Object.assign({maintenance:false,msg:''},d.site);
-    store.news=d.news; store.schedule=d.schedule; store.members=d.members;
-    LOADED=true; initUI(); applyRole(); agendaBanner();
+    store.news=d.news; store.schedule=d.schedule; store.members=d.members; store.media=d.media||[];
+    LOADED=true; initUI(); renderMedia(); applyRole(); try{agendaBanner();}catch(e){} afterLogin(r);
     document.getElementById('login').style.display='none';
   }catch(e){
     sessionStorage.removeItem('mjc48-token'); TOKEN='';
@@ -989,7 +1023,7 @@ async function renderUsers(){
   if(!ME||ME.role!=='admin') return;
   const r=await api('users_list'); if(!r.ok) return showToast(r.error,'error');
   USERS=r.users;
-  document.getElementById('users-tbody').innerHTML=USERS.map(u=>{const on=u.status!=='suspended',self=ME&&u.username===ME.username;return `<tr class="${on?'':'u-suspended'}"><td><b>${esc(u.username)}</b></td><td>${esc(u.name)}</td><td>${u.role==='admin'?'Admin':'Manager'}</td><td>${u.role==='admin'?'Semua':(u.teams||'—').toUpperCase().replace(/,/g,', ')}</td><td>${esc(u.email||'—')}</td><td class="u-keep"><div class="u-status"><label class="toggle" title="${self?'Tidak bisa menangguhkan akun sendiri':(on?'Matikan untuk menangguhkan':'Nyalakan untuk mengaktifkan')}"><input type="checkbox" ${on?'checked':''} ${self?'disabled':''} onchange="setStatus('${esc(u.username)}',this.checked)"><span class="toggle-slider"></span></label><span class="${on?'badge-on':'badge-off'}">${on?'Aktif':'Ditangguhkan'}</span></div></td><td class="u-keep"><div style="display:flex;gap:6px;"><button class="btn btn-ghost btn-sm" onclick="editUser('${esc(u.username)}')">Edit</button><button class="btn btn-danger btn-sm" onclick="delUser('${esc(u.username)}')">Hapus</button></div></td></tr>`;}).join('');
+  document.getElementById('users-tbody').innerHTML=USERS.map(u=>{const on=u.status!=='suspended',self=ME&&u.username===ME.username;return `<tr class="${on?'':'u-suspended'}"><td><b>${esc(u.username)}</b></td><td>${esc(u.name)}</td><td>${u.role==='admin'?'Admin':'Manager'}</td><td>${u.role==='admin'?'Semua':(u.teams||'—').toUpperCase().replace(/,/g,', ')}</td><td>${esc(u.email||'—')}</td><td class="u-keep"><div class="u-status"><label class="toggle" title="${self?'Tidak bisa menangguhkan akun sendiri':(on?'Matikan untuk menangguhkan':'Nyalakan untuk mengaktifkan')}"><input type="checkbox" ${on?'checked':''} ${self?'disabled':''} onchange="setStatus('${esc(u.username)}',this.checked)"><span class="toggle-slider"></span></label><span class="${on?'badge-on':'badge-off'}">${on?'Aktif':'Ditangguhkan'}</span></div></td><td class="u-keep"><div style="display:flex;gap:6px;"><button class="btn btn-ghost btn-sm" onclick="editUser('${esc(u.username)}')">Edit</button>${u.role==='manager'?`<button class="btn btn-ghost btn-sm" onclick="openNotice('${esc(u.username)}')">⚠ Teguran</button>`:''}<button class="btn btn-danger btn-sm" onclick="delUser('${esc(u.username)}')">Hapus</button></div></td></tr>`;}).join('');
 }
 function esc(t){return String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 async function setStatus(n,on){
@@ -1002,15 +1036,15 @@ function editUser(n){
   document.getElementById('u-name').value=u.username; document.getElementById('u-name').readOnly=true;
   document.getElementById('u-full').value=u.name; document.getElementById('u-role').value=u.role;
   document.getElementById('u-pass').value=''; document.getElementById('u-pass').placeholder='Kosongkan jika tidak diganti';
-  document.getElementById('u-email').value=u.email||''; const ts=(u.teams||'').split(','); document.querySelectorAll('.u-team').forEach(c=>c.checked=ts.includes(c.value));
+  document.getElementById('u-email').value=u.email||''; userRoleUI(u.memberId); const ts=(u.teams||'').split(','); document.querySelectorAll('.u-team').forEach(c=>c.checked=ts.includes(c.value));
   window.scrollTo(0,0);
 }
 function resetUserForm(){
-  ['u-name','u-full','u-pass','u-email'].forEach(i=>document.getElementById(i).value=''); document.querySelectorAll('.u-team').forEach(c=>c.checked=false);
+  userRoleUI(); ['u-name','u-full','u-pass','u-email'].forEach(i=>document.getElementById(i).value=''); document.querySelectorAll('.u-team').forEach(c=>c.checked=false);
   document.getElementById('u-name').readOnly=false; document.getElementById('u-pass').placeholder='Minimal 6 karakter';
 }
 async function saveUser(){
-  const d={username:document.getElementById('u-name').value,name:document.getElementById('u-full').value,role:document.getElementById('u-role').value,password:document.getElementById('u-pass').value,email:document.getElementById('u-email').value,teams:[...document.querySelectorAll('.u-team:checked')].map(c=>c.value)};
+  const d={username:document.getElementById('u-name').value,name:document.getElementById('u-full').value,role:document.getElementById('u-role').value,password:document.getElementById('u-pass').value,email:document.getElementById('u-email').value,memberId:document.getElementById('u-member').value,teams:[...document.querySelectorAll('.u-team:checked')].map(c=>c.value)};
   const r=await api('user_save',d);
   if(!r.ok) return showToast(r.error,'error');
   showToast('Akun disimpan','success'); resetUserForm(); renderUsers();
@@ -1044,7 +1078,7 @@ const pageInfo = {
   'preview':{ title:'Preview Web Publik', crumb:'MJC48 Admin / Preview' },
 };
 
-function goPage(pid){
+function goPage(pid){ if(pid==='tasks') setTimeout(loadTasks,0);
   if(!can(pid)) pid='dashboard';
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item[data-page]').forEach(n=>n.classList.remove('active'));
@@ -1202,17 +1236,18 @@ async function uploadPhoto(inp){
     const s=Math.min(1,600/Math.max(img.width,img.height)), c=document.createElement('canvas');
     c.width=Math.round(img.width*s); c.height=Math.round(img.height*s);
     c.getContext('2d').drawImage(img,0,0,c.width,c.height);
-    const b64=c.toDataURL('image/jpeg',0.85).split(',')[1];
-    const r=await api('upload',{base64:b64,mime:'image/jpeg'});
+    const png=/png|webp|gif/.test(f.type), mt=png?'image/png':'image/jpeg';
+    const b64=c.toDataURL(mt,0.88).split(',')[1];
+    const r=await api('upload',{base64:b64,mime:mt,name:'member'});
     if(!r.ok) throw new Error(r.error);
     window._memPhoto=r.url;
-    const p=document.getElementById('mi-photo-prev'); p.src=c.toDataURL('image/jpeg',0.6); p.style.display='block';
-    txt.textContent='Foto terunggah. Klik untuk ganti.';
+    window._memPhoto=r.url; window._memBlob=c.toDataURL(mt,0.88); memPrev();
+    txt.textContent='Foto terunggah. Atur zoom & posisi di bawah.';
   }catch(e){ txt.textContent='Gagal: '+e.message+'. Klik untuk coba lagi.'; }
 }
 function editMember(id){
   const m=store.members.find(x=>x.id===id); if(!m) return;
-  window._editMemId=id; window._memPhoto=m.photo||'';
+  window._editMemId=id; window._memPhoto=m.photo||''; window._memBlob='';
   document.getElementById('mi-name').value=m.name||'';
   document.getElementById('mi-nick').value=m.nick&&m.nick!==m.name?m.nick:'';
   document.getElementById('mi-team').value=m.team||'miii';
@@ -1221,17 +1256,18 @@ function editMember(id){
   const p=document.getElementById('mi-photo-prev');
   if(m.photo){ p.src=m.photo; p.style.display='block'; document.getElementById('mi-photo-txt').textContent='Klik untuk ganti foto'; }
   else { p.style.display='none'; document.getElementById('mi-photo-txt').textContent='Klik untuk upload foto'; }
+  document.getElementById('pz-z').value=Number(m.pz)||100; document.getElementById('pz-x').value=Number(m.px)||0; document.getElementById('pz-y').value=Number(m.py)||0; memPrev();
   openModal('modal-add-member');
 }
 function addMember(){
   const name=document.getElementById('mi-name').value.trim();
   if(!name){ showToast('Nama tidak boleh kosong','error'); return; }
   const nick=document.getElementById('mi-nick').value.trim()||name;
-  const rec={ id:window._editMemId||Date.now(), name, nick, team:document.getElementById('mi-team').value, gen:document.getElementById('mi-gen').value, dob:document.getElementById('mi-dob').value, photo:window._memPhoto||'' };
+  const rec={ id:window._editMemId||Date.now(), name, nick, team:document.getElementById('mi-team').value, gen:document.getElementById('mi-gen').value, dob:document.getElementById('mi-dob').value, photo:window._memPhoto||'', pz:document.getElementById('pz-z').value, px:document.getElementById('pz-x').value, py:document.getElementById('pz-y').value };
   const ix=window._editMemId?store.members.findIndex(x=>x.id===window._editMemId):-1;
   if(ix>=0) store.members[ix]=rec; else store.members.push(rec);
   const wasEdit=ix>=0; window._editMemId=null;
-  window._memPhoto=''; document.getElementById('mi-photo-prev').style.display='none'; document.getElementById('mi-photo-txt').textContent='Klik untuk upload foto'; document.getElementById('mi-photo-file').value='';
+  window._memPhoto=''; window._memBlob=''; ['pz-z','pz-x','pz-y'].forEach((i,n)=>document.getElementById(i).value=n?0:100); memPrev(); document.getElementById('mi-photo-prev').style.display='none'; document.getElementById('mi-photo-txt').textContent='Klik untuk upload foto'; document.getElementById('mi-photo-file').value='';
   saveStore(); closeModal('modal-add-member'); renderMembers(); updateDashStats();
   document.getElementById('mi-name').value=''; document.getElementById('mi-nick').value=''; document.getElementById('mi-gen').value='';
   showToast(wasEdit?'Member diperbarui!':'Member ditambahkan!','success');
@@ -1347,6 +1383,86 @@ function initUI(){
   updateDashStats(); renderNews(); renderSchedule(); renderMembers();
 }
 window.addEventListener('DOMContentLoaded',()=>{ if(TOKEN) doLogin(true); });
+
+/* ===== FOTO MEMBER (zoom/geser) ===== */
+const TC={miii:'#1E4FA0',jii:'#3A2E08',cii:'#C97A46',trainee:'#2F9BE0'};
+function memPrev(){
+  const s=document.getElementById('sh-prev'), im=document.getElementById('sh-img'), nm=(document.getElementById('mi-name').value||'K').trim();
+  s.style.background=TC[document.getElementById('mi-team').value]||'#2B1CFF';
+  document.getElementById('sh-letter').textContent=nm.split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  const src=window._memBlob||window._memPhoto||'';
+  if(src){ im.src=src; im.style.display='block'; im.style.transform=`translate(${document.getElementById('pz-x').value}%,${document.getElementById('pz-y').value}%) scale(${document.getElementById('pz-z').value/100})`; } else im.style.display='none';
+}
+/* ===== MEDIA UPLOAD ===== */
+function readB64(f){return new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(r.result.split(',')[1]);r.onerror=no;r.readAsDataURL(f);});}
+async function uploadMedia(files){
+  for(const f of files){
+    if(!/^image\//.test(f.type)){ showToast(f.name+': bukan gambar','error'); continue; }
+    if(f.size>5*1024*1024){ showToast(f.name+': maks 5MB','error'); continue; }
+    showToast('Mengunggah '+f.name+'…','');
+    try{
+      const r=await api('upload',{base64:await readB64(f),mime:f.type,name:f.name});
+      if(!r.ok) throw new Error(r.error);
+      (store.media=store.media||[]).unshift({id:Date.now(),url:r.url,name:f.name}); saveStore(); renderMedia();
+      showToast('Terunggah: '+f.name,'success');
+    }catch(e){ showToast('Gagal upload: '+e.message,'error'); }
+  }
+}
+function renderMedia(){
+  const el=document.getElementById('media-extra'); if(!el) return;
+  el.innerHTML=(store.media||[]).map((m,i)=>`<div class="media-item" title="Klik untuk salin URL" onclick="navigator.clipboard.writeText('${esc(m.url)}');showToast('URL disalin','success')" style="background:#fff;"><img src="${esc(m.url)}" alt="" style="width:100%;height:100%;object-fit:contain"><div class="mi-name">${esc(m.name)}</div></div>`).join('');
+}
+/* ===== TUGAS MEMBER ===== */
+let TASKS=[];
+const ST={todo:'Belum mulai',doing:'Dikerjakan',done:'Selesai'};
+function mName(id){const m=store.members.find(x=>String(x.id)===String(id));return m?(m.nick||m.name):'(member dihapus)';}
+async function loadTasks(){ const r=await api('tasks'); if(!r.ok) return showToast(r.error,'error'); TASKS=r.tasks; renderTasks(); }
+function renderTasks(){
+  const mem=ME&&ME.role==='member', today=dstr(new Date());
+  document.getElementById('tasks-title').textContent=mem?'Tugas Saya':'Tugas Member (dipantau)';
+  document.getElementById('task-add-btn').style.display=mem?'none':'';
+  const done=TASKS.filter(t=>t.status==='done').length;
+  document.getElementById('tasks-sum').textContent=TASKS.length?`${done} dari ${TASKS.length} tugas selesai`:'Belum ada tugas.';
+  document.getElementById('tasks-tbody').innerHTML=TASKS.map(t=>{const late=t.due&&t.due<today&&t.status!=='done';return `<tr><td>${esc(mName(t.memberId))}</td><td><b>${esc(t.title)}</b>${t.note?`<div style="font-size:12px;color:var(--ink-soft)">${esc(t.note)}</div>`:''}</td><td class="${late?'t-late':''}">${esc(t.due||'—')}${late?' ⚠':''}</td>
+  <td><select class="form-select" id="ts-${t.id}" onchange="taskUpd('${t.id}')">${Object.keys(ST).map(k=>`<option value="${k}" ${t.status===k?'selected':''}>${ST[k]}</option>`).join('')}</select></td>
+  <td><input type="range" min="0" max="100" step="5" value="${t.progress||0}" id="tp-${t.id}" style="width:100%" onchange="taskUpd('${t.id}')"><div class="t-bar"><i style="width:${t.progress||0}%"></i></div><small>${t.progress||0}%</small></td>
+  <td>${mem?'':`<button class="btn btn-ghost btn-sm" onclick="openTask('${t.id}')">Edit</button> <button class="btn btn-danger btn-sm" onclick="delTask('${t.id}')">Hapus</button>`}</td></tr>`;}).join('');
+}
+async function taskUpd(id){
+  const r=await api('task_update',{id,status:document.getElementById('ts-'+id).value,progress:document.getElementById('tp-'+id).value});
+  if(!r.ok) showToast(r.error,'error'); else showToast('Progress disimpan','success'); loadTasks();
+}
+function openTask(id){
+  const t=id&&TASKS.find(x=>String(x.id)===String(id)); window._taskId=t?t.id:null; const mine=myTeams();
+  document.getElementById('t-member').innerHTML=store.members.filter(m=>mine.includes(m.team)).map(m=>`<option value="${esc(m.id)}">${esc(m.nick||m.name)} (${esc(TN[m.team]||m.team)})</option>`).join('');
+  document.getElementById('t-member').value=t?t.memberId:document.getElementById('t-member').value;
+  document.getElementById('t-title').value=t?t.title:''; document.getElementById('t-due').value=t?t.due:''; document.getElementById('t-note').value=t?t.note:'';
+  openModal('modal-task');
+}
+async function saveTask(){
+  const r=await api('task_save',{id:window._taskId,memberId:document.getElementById('t-member').value,title:document.getElementById('t-title').value,due:document.getElementById('t-due').value,note:document.getElementById('t-note').value});
+  if(!r.ok) return showToast(r.error,'error'); closeModal('modal-task'); showToast('Tugas disimpan','success'); loadTasks();
+}
+async function delTask(id){ if(!confirm('Hapus tugas ini?')) return; const r=await api('task_del',{id}); if(!r.ok) return showToast(r.error,'error'); loadTasks(); }
+/* ===== TEGURAN ===== */
+function openNotice(u){ window._noticeTo=u; const a=USERS.find(x=>x.username===u); document.getElementById('n-to-name').textContent=(a&&a.name)||u; document.getElementById('n-text').value=''; openModal('modal-notice'); }
+async function sendNotice(){
+  const r=await api('notice_send',{to:window._noticeTo,text:document.getElementById('n-text').value});
+  if(!r.ok) return showToast(r.error,'error'); closeModal('modal-notice');
+  showToast(r.mailed?'Teguran terkirim ke akun & email':'Teguran terkirim ke akun (email belum diisi / gagal kirim)','success');
+}
+let _notices=[];
+function afterLogin(r){
+  if(ME.role==='member') goPage('tasks');
+  _notices=r.notices||[];
+  if(_notices.length){ document.getElementById('inbox-body').innerHTML=_notices.map(n=>`<div style="padding:12px;border-left:3px solid var(--danger);background:var(--danger-soft);border-radius:8px;margin-bottom:10px;font-size:14px;"><b>${esc(n.from)}</b> · ${esc(n.date)}<div style="margin-top:6px;white-space:pre-wrap">${esc(n.text)}</div></div>`).join(''); openModal('modal-inbox'); }
+}
+async function ackNotices(){ await api('notice_read'); closeModal('modal-inbox'); }
+function userRoleUI(sel){
+  const el=document.getElementById('u-member'), mem=document.getElementById('u-role').value==='member', cur=sel||el.value;
+  document.getElementById('u-member-wrap').style.display=mem?'':'none';
+  el.innerHTML=store.members.map(m=>`<option value="${esc(m.id)}">${esc(m.nick||m.name)} (${esc(TN[m.team]||m.team)})</option>`).join(''); if(cur) el.value=cur;
+}
 </script>
 </body>
 </html>
