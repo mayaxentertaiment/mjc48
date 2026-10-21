@@ -305,6 +305,12 @@ tr.u-suspended td:last-child,tr.u-suspended td.u-keep{opacity:1;}
 .pz-row{display:flex;align-items:center;gap:10px;font-size:12.5px;margin:6px 0;}.pz-row span{width:64px;color:var(--ink-soft);}.pz-row input{flex:1;}
 .t-bar{height:8px;border-radius:99px;background:#E6E8F2;overflow:hidden;margin-top:6px;}.t-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--brand),var(--brand-2));}
 .t-late{color:var(--danger);font-weight:700;}
+
+.pf-head{display:flex;align-items:center;gap:18px;margin-bottom:20px;flex-wrap:wrap}
+.pf-ava{width:92px;height:92px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--brand-2));color:#fff;font:700 34px 'Inter',sans-serif;display:flex;align-items:center;justify-content:center;overflow:hidden;flex:none;box-shadow:0 10px 24px -8px rgba(79,70,229,.6)}
+.pf-ava img{width:100%;height:100%;object-fit:cover}
+.pf-chip{display:inline-block;font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:99px;background:rgba(79,70,229,.1);color:var(--brand);margin:4px 6px 0 0}
+.pf-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}@media(max-width:900px){.pf-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -363,6 +369,9 @@ tr.u-suspended td:last-child,tr.u-suspended td.u-keep{opacity:1;}
     </div>
     <div class="nav-item" data-page="tasks">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M2 2h12v12H2V2zm1.5 1.5v9h9v-9h-9zM7 10.5 4.8 8.3l1-1L7 8.5l3.2-3.2 1 1L7 10.5z"/></svg><span id="nav-tasks-txt">Tugas Member</span>
+    </div>
+    <div class="nav-item" data-page="profile">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm0 1.5c-2.7 0-5 1.4-5 3.5V14h10v-1c0-2.1-2.3-3.5-5-3.5z"/></svg>Profil Saya
     </div>
     <div class="nav-item" data-page="accounts">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M8 8a3 3 0 100-6 3 3 0 000 6zm0 1c-3 0-5 1.5-5 3v1h10v-1c0-1.5-2-3-5-3z"/></svg>Akun
@@ -745,7 +754,7 @@ tr.u-suspended td:last-child,tr.u-suspended td.u-keep{opacity:1;}
       </div>
     </div>
 
-    <div class="page" id="page-accounts">
+    <div class="page" id="page-accounts"><div id="req-box"></div>
       <div class="panel" style="max-width:520px;margin-bottom:22px;">
         <div class="panel-header"><span class="panel-title">Ganti Password Saya</span></div>
         <div class="panel-body">
@@ -783,6 +792,28 @@ tr.u-suspended td:last-child,tr.u-suspended td.u-keep{opacity:1;}
         <div class="panel-body"><div id="tasks-sum" style="font-size:13px;color:var(--ink-soft);margin-bottom:14px;"></div>
           <table class="member-table"><thead><tr><th>Member</th><th>Tugas</th><th>Tenggat</th><th>Status</th><th style="min-width:180px">Progress</th><th></th></tr></thead><tbody id="tasks-tbody"></tbody></table></div>
       </div>
+    </div>
+    <div class="page" id="page-profile">
+      <div class="panel"><div class="panel-body">
+        <div class="pf-head"><div class="pf-ava" id="pf-ava"></div><div><div style="font-size:20px;font-weight:700" id="pf-title"></div><div style="font-size:13px;color:var(--ink-soft)" id="pf-sub"></div><div id="pf-chips"></div></div></div>
+        <div class="pf-grid">
+          <div>
+            <div class="form-group"><label class="form-label">Foto profil</label><input type="file" id="pf-file" accept="image/*" onchange="pfPhoto(this.files[0])"></div>
+            <div class="form-group"><label class="form-label">Nama lengkap</label><input class="form-input" id="pf-name"></div>
+            <div class="form-group"><label class="form-label">No. HP / WhatsApp</label><input class="form-input" id="pf-phone" placeholder="08xxxxxxxxxx"></div>
+            <div class="form-group"><label class="form-label">Bio singkat</label><textarea class="form-textarea" id="pf-bio" rows="3" maxlength="300" placeholder="Ceritakan sedikit tentang kamu…"></textarea></div>
+            <button class="btn btn-primary" onclick="saveProfile()">Simpan Profil</button>
+          </div>
+          <div>
+            <div class="form-group"><label class="form-label">Username</label><input class="form-input" id="pf-user" disabled>
+              <div id="pf-req" style="font-size:12.5px;margin-top:6px"></div>
+              <div style="display:flex;gap:8px;margin-top:8px"><input class="form-input" id="pf-newuser" placeholder="username baru"><button class="btn btn-ghost btn-sm" onclick="reqUsername()">Ajukan</button></div>
+              <div style="font-size:12px;color:var(--ink-soft);margin-top:4px">Ganti username harus disetujui admin.</div></div>
+            <div class="form-group"><label class="form-label">Email (diatur admin)</label><input class="form-input" id="pf-email" disabled></div>
+            <div class="form-group"><label class="form-label">Ganti password</label><input class="form-input" id="pf-old" type="password" placeholder="Password lama"><input class="form-input" id="pf-pw" type="password" style="margin-top:8px" placeholder="Password baru (min. 6 karakter)"><button class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="changePw()">Ubah Password</button></div>
+          </div>
+        </div>
+      </div></div>
     </div>
     <div class="page" id="page-preview">
       <div class="panel">
@@ -907,8 +938,8 @@ async function api(op,data){
   const r=await fetch(API,{method:'POST',body:JSON.stringify({token:TOKEN,op,data})});
   return r.json();
 }
-const CAN_MANAGER=['dashboard','schedule-manager','member-manager','agenda','accounts','preview','tasks'];
-function can(pid){ return !ME||ME.role==='admin'||(ME.role==='member'?pid==='tasks':CAN_MANAGER.includes(pid)); }
+const CAN_MANAGER=['dashboard','schedule-manager','member-manager','agenda','accounts','preview','tasks','profile'];
+function can(pid){ return !ME||ME.role==='admin'||(ME.role==='member'?(pid==='tasks'||pid==='profile'):CAN_MANAGER.includes(pid)); }
 function applyRole(){
   document.querySelectorAll('.nav-item[data-page]').forEach(n=>n.style.display=can(n.dataset.page)?'':'none');
   document.querySelectorAll('.quick-card').forEach(c=>{const m=(c.getAttribute('onclick')||'').match(/goPage\('([^']+)'/); if(m&&!can(m[1])) c.style.display='none';});
@@ -1025,7 +1056,7 @@ async function renderUsers(){
   if(!ME||ME.role!=='admin') return;
   const r=await api('users_list'); if(!r.ok) return showToast(r.error,'error');
   USERS=r.users;
-  document.getElementById('users-tbody').innerHTML=USERS.map(u=>{const on=u.status!=='suspended',self=ME&&u.username===ME.username;return `<tr class="${on?'':'u-suspended'}"><td><b>${esc(u.username)}</b></td><td>${esc(u.name)}</td><td>${u.role==='admin'?'Admin':'Manager'}</td><td>${u.role==='admin'?'Semua':(u.teams||'—').toUpperCase().replace(/,/g,', ')}</td><td>${esc(u.email||'—')}</td><td class="u-keep"><div class="u-status"><label class="toggle" title="${self?'Tidak bisa menangguhkan akun sendiri':(on?'Matikan untuk menangguhkan':'Nyalakan untuk mengaktifkan')}"><input type="checkbox" ${on?'checked':''} ${self?'disabled':''} onchange="setStatus('${esc(u.username)}',this.checked)"><span class="toggle-slider"></span></label><span class="${on?'badge-on':'badge-off'}">${on?'Aktif':'Ditangguhkan'}</span></div></td><td class="u-keep"><div style="display:flex;gap:6px;"><button class="btn btn-ghost btn-sm" onclick="editUser('${esc(u.username)}')">Edit</button>${u.role==='manager'?`<button class="btn btn-ghost btn-sm" onclick="openNotice('${esc(u.username)}')">⚠ Teguran</button>`:''}<button class="btn btn-danger btn-sm" onclick="delUser('${esc(u.username)}')">Hapus</button></div></td></tr>`;}).join('');
+  renderReq();document.getElementById('users-tbody').innerHTML=USERS.map(u=>{const on=u.status!=='suspended',self=ME&&u.username===ME.username;return `<tr class="${on?'':'u-suspended'}"><td><b>${esc(u.username)}</b></td><td>${esc(u.name)}</td><td>${u.role==='admin'?'Admin':'Manager'}</td><td>${u.role==='admin'?'Semua':(u.teams||'—').toUpperCase().replace(/,/g,', ')}</td><td>${esc(u.email||'—')}</td><td class="u-keep"><div class="u-status"><label class="toggle" title="${self?'Tidak bisa menangguhkan akun sendiri':(on?'Matikan untuk menangguhkan':'Nyalakan untuk mengaktifkan')}"><input type="checkbox" ${on?'checked':''} ${self?'disabled':''} onchange="setStatus('${esc(u.username)}',this.checked)"><span class="toggle-slider"></span></label><span class="${on?'badge-on':'badge-off'}">${on?'Aktif':'Ditangguhkan'}</span></div></td><td class="u-keep"><div style="display:flex;gap:6px;"><button class="btn btn-ghost btn-sm" onclick="editUser('${esc(u.username)}')">Edit</button>${u.role==='manager'?`<button class="btn btn-ghost btn-sm" onclick="openNotice('${esc(u.username)}')">⚠ Teguran</button>`:''}<button class="btn btn-danger btn-sm" onclick="delUser('${esc(u.username)}')">Hapus</button></div></td></tr>`;}).join('');
 }
 function esc(t){return String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 async function setStatus(n,on){
@@ -1080,7 +1111,7 @@ const pageInfo = {
   'preview':{ title:'Preview Web Publik', crumb:'MJC48 Admin / Preview' },
 };
 
-function goPage(pid){ if(pid==='tasks') setTimeout(loadTasks,0);
+function goPage(pid){ if(pid==='tasks') setTimeout(loadTasks,0); if(pid==='profile') setTimeout(renderProfile,0);
   if(!can(pid)) pid='dashboard';
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item[data-page]').forEach(n=>n.classList.remove('active'));
@@ -1485,6 +1516,50 @@ function openTaskD(id){
 async function submitTask(){
   const r=await api('task_submit',{id:window._taskD,note:document.getElementById('td-note').value,link:document.getElementById('td-link').value});
   if(!r.ok) return showToast(r.error,'error'); closeModal('modal-taskd'); showToast('Tugas terkirim ke manager','success'); loadTasks();
+}
+
+/* ===== PROFIL ===== */
+function renderProfile(){
+  const u=ME||{}, ini=(u.name||u.username||'?').split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  document.getElementById('pf-ava').innerHTML=u.photo?`<img src="${esc(u.photo)}" alt="">`:esc(ini);
+  document.getElementById('pf-title').textContent=u.name||u.username;
+  document.getElementById('pf-sub').textContent='@'+u.username+(u.joined?' · bergabung '+u.joined:'');
+  const tm=(u.teams||'').split(',').filter(Boolean).map(t=>`<span class="pf-chip">${esc(TN[t]||t)}</span>`).join('');
+  document.getElementById('pf-chips').innerHTML=`<span class="pf-chip">${u.role==='admin'?'Admin':u.role==='member'?'Member':'Manager'}</span>${tm}`;
+  pfv('pf-name',u.name||''); pfv('pf-phone',u.phone||''); pfv('pf-bio',u.bio||''); pfv('pf-user',u.username||''); pfv('pf-email',u.email||'');
+  document.getElementById('pf-req').innerHTML=u.reqUsername?`⏳ Menunggu persetujuan admin: <b>${esc(u.reqUsername)}</b> <a href="#" onclick="cancelReq();return false">batalkan</a>`:'';
+  document.getElementById('pf-newuser').style.display=u.role==='admin'?'none':'';
+}
+function pfv(i,v){document.getElementById(i).value=v;}
+function pfPhoto(f){
+  if(!f) return; const img=new Image(); img.onload=()=>{
+    const s=Math.min(1,400/Math.max(img.width,img.height)), c=document.createElement('canvas'); c.width=img.width*s; c.height=img.height*s;
+    c.getContext('2d').drawImage(img,0,0,c.width,c.height); const png=/png|webp/.test(f.type), mt=png?'image/png':'image/jpeg';
+    const d=c.toDataURL(mt,0.85); window._pfPhoto={b64:d.split(',')[1],mime:mt};
+    document.getElementById('pf-ava').innerHTML=`<img src="${d}" alt="">`;
+  }; img.src=URL.createObjectURL(f);
+}
+async function saveProfile(){
+  const p=window._pfPhoto||{};
+  const r=await api('profile_save',{name:document.getElementById('pf-name').value,phone:document.getElementById('pf-phone').value,bio:document.getElementById('pf-bio').value,photoB64:p.b64,mime:p.mime});
+  if(!r.ok) return showToast(r.error,'error'); ME=r.user; window._pfPhoto=null; applyRole(); renderProfile(); showToast('Profil disimpan','success');
+}
+async function reqUsername(){
+  const r=await api('username_request',{username:document.getElementById('pf-newuser').value});
+  if(!r.ok) return showToast(r.error,'error'); ME=r.user; document.getElementById('pf-newuser').value=''; renderProfile(); showToast('Permintaan dikirim ke admin','success');
+}
+async function cancelReq(){ const r=await api('username_request',{username:''}); if(r.ok){ME=r.user;renderProfile();} }
+async function changePw(){
+  const r=await api('change_pw',{old:document.getElementById('pf-old').value,pw:document.getElementById('pf-pw').value});
+  if(!r.ok) return showToast(r.error,'error'); pfv('pf-old',''); pfv('pf-pw',''); showToast('Password diubah','success');
+}
+function renderReq(){
+  const box=document.getElementById('req-box'), rq=USERS.filter(u=>u.reqUsername);
+  box.innerHTML=rq.length?`<div class="panel" style="margin-bottom:20px;border-color:#F59E0B"><div class="panel-header"><span class="panel-title">⏳ Permintaan Ganti Username (${rq.length})</span></div><div class="panel-body">${rq.map(u=>`<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:6px 0"><span style="flex:1"><b>${esc(u.name||u.username)}</b> (${esc(u.role)}) : <code>${esc(u.username)}</code> → <code>${esc(u.reqUsername)}</code></span><button class="btn btn-primary btn-sm" onclick="reviewUser('${esc(u.username)}',true)">Setujui</button><button class="btn btn-ghost btn-sm" onclick="reviewUser('${esc(u.username)}',false)">Tolak</button></div>`).join('')}</div></div>`:'';
+}
+async function reviewUser(n,ok){
+  const r=await api('username_review',{username:n,approve:ok}); if(!r.ok) return showToast(r.error,'error');
+  USERS=r.users; renderUsers(); showToast(ok?'Username diganti':'Permintaan ditolak','success');
 }
 </script>
 </body>
