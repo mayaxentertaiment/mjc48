@@ -1047,11 +1047,14 @@ document.querySelectorAll('.dropdown-toggle').forEach(function(btn){
 </script>
 
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
-/* ===== Sinkron data dari Google Sheet (diisi lewat admin.html) ===== */
+/* ===== Sinkron data dari Supabase (realtime) ===== */
 (function(){
-  var API='https://script.google.com/macros/s/AKfycbwtWUZX3G4JsjO_9RHiWPAVJQA3wiobisfs9O7XmF8w9LD2CuXLFOscB5DQGBsTo3U/exec';
-  if(API.indexOf('GANTI')===0) return;
+  var SB_URL='https://kkdmlotknjsxmifblewy.supabase.co';
+  var SB_KEY='sb_publishable_ki6C8vqsE--EFbHvjHMPbA_rEkmRKFs';
+  if(!window.supabase) return;
+  var sb=window.supabase.createClient(SB_URL,SB_KEY);
   var $=function(s,r){return (r||document).querySelector(s);};
   var esc=function(t){return String(t==null?'':t).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});};
   var TEAMS=[['miii','Team MIII'],['jii','Team JII'],['cii','Team CII'],['trainee','Trainee']];
@@ -1067,8 +1070,9 @@ document.querySelectorAll('.dropdown-toggle').forEach(function(btn){
   function pad(n){return n<10?'0'+n:''+n;}
 
   function maint(site){
+    var prev=document.getElementById('maint-ov');if(prev){prev.remove();document.body.style.overflow='';}
     if(!site||!site.maintenance||/[?&]preview=1/.test(location.search)) return false;
-    var o=document.createElement('div');
+    var o=document.createElement('div');o.id='maint-ov';
     o.style.cssText='position:fixed;inset:0;z-index:99999;background:#0A0730;color:#fff;display:flex;align-items:center;justify-content:center;text-align:center;padding:28px;overflow:auto;';
     o.innerHTML='<div style="max-width:520px"><img src="logo-mjc48.png" alt="" style="height:72px;margin-bottom:22px" onerror="this.style.display=\'none\'">'
       +'<div style="font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:#C9A227;font-weight:600;margin-bottom:14px">MJC48</div>'
@@ -1148,7 +1152,35 @@ document.querySelectorAll('.dropdown-toggle').forEach(function(btn){
     }).join('')+(anyOpen?'<a href="#member" class="nav-link dropdown-link">Semua Member</a>':'<span class="nav-link dropdown-link disabled">Semua Member <small style="opacity:0.6; font-size: 0.75em;">(Coming Soon)</small></span>');
   }
 
-  fetch(API+(API.indexOf('?')<0?'?':'&')+'t='+Date.now(),{cache:'no-store'}).then(function(r){return r.json();}).then(render).catch(function(){/* gagal: tampilan bawaan tetap dipakai */});
+  function load(){
+    return Promise.all([
+      sb.from('settings').select('key,value'),
+      sb.from('news').select('*').eq('status','published'),
+      sb.from('schedule').select('*').is('member',null),
+      sb.from('members').select('*')
+    ]).then(function(r){
+      if(r.some(function(x){return x.error;})) throw new Error('load gagal');
+      var st={};(r[0].data||[]).forEach(function(x){st[x.key]=x.value;});
+      render({
+        hero:st.hero||{},
+        teams:st.teams||{miii:false,jii:false,cii:false,trainee:false},
+        site:st.site||{maintenance:false,msg:''},
+        news:r[1].data||[], schedule:r[2].data||[], members:r[3].data||[], media:st.media||[]
+      });
+    }).catch(function(){/* gagal: tampilan bawaan tetap dipakai */});
+  }
+  load();
+
+  // Realtime: muat ulang (ditunda 300 ms) setiap ada perubahan data
+  var _rt;function soon(){clearTimeout(_rt);_rt=setTimeout(load,300);}
+  var ch=sb.channel('mjc48-public');
+  ['news','schedule','members','settings'].forEach(function(t){
+    ch.on('postgres_changes',{event:'*',schema:'public',table:t},soon);
+  });
+  ch.subscribe();
+  // Cadangan: perubahan yang menyembunyikan baris (mis. berita jadi draft) tidak dikirim ke pengunjung publik
+  document.addEventListener('visibilitychange',function(){if(!document.hidden)soon();});
+  setInterval(load,120000);
 })();
 </script>
 <div style="position:fixed;right:10px;bottom:6px;font-size:10px;opacity:.45;z-index:9999;pointer-events:none">v2026.10.21-8</div></body>
