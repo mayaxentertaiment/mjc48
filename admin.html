@@ -770,7 +770,7 @@ tr.u-suspended td:last-child,tr.u-suspended td.u-keep{opacity:1;}
             <div class="form-group"><label class="form-label">Username</label><input class="form-input" id="u-name" placeholder="contoh: manager-miii" autocapitalize="none"></div>
             <div class="form-group"><label class="form-label">Nama</label><input class="form-input" id="u-full" placeholder="Nama lengkap"></div>
             <div class="form-group"><label class="form-label">Role</label><select class="form-select" id="u-role" onchange="userRoleUI()"><option value="manager">Manager (member &amp; jadwal)</option><option value="admin">Admin (akses penuh)</option><option value="member">Member (lihat tugas sendiri)</option><option value="editor">Editor (intranet staff)</option></select></div>
-            <div class="form-group" id="u-div-wrap" style="display:none"><label class="form-label">Jenis editor</label><select class="form-select" id="u-div"><option value="editor_foto">Editor Foto</option><option value="editor_video">Editor Video</option><option value="kreatif">Kreatif (thumbnail &amp; desain)</option></select><div class="form-hint">Akun editor dipakai untuk login di intranet staff (bukan panel ini). Password minimal 8 karakter, wajib diganti saat login pertama.</div></div>
+            <div class="form-group" id="u-div-wrap" style="display:none"><label class="form-label">Jenis editor</label><select class="form-select" id="u-div"><option value="">— pilih jenis —</option><option value="editor_foto">Editor Foto</option><option value="editor_video">Editor Video</option><option value="kreatif">Kreatif (thumbnail &amp; desain)</option></select><div class="form-hint">Akun editor dipakai untuk login di intranet staff (bukan panel ini). Password minimal 8 karakter, wajib diganti saat login pertama.</div></div>
             <div class="form-group" id="u-member-wrap" style="display:none"><label class="form-label">Member yang terhubung</label><select class="form-select" id="u-member"></select></div>
             <div class="form-group" id="u-team-wrap"><label class="form-label">Tim yang dipegang (untuk Manager)</label><div style="display:flex;gap:14px;flex-wrap:wrap;font-size:13.5px;"><label><input type="checkbox" class="u-team" value="miii"> MIII</label><label><input type="checkbox" class="u-team" value="jii"> JII</label><label><input type="checkbox" class="u-team" value="cii"> CII</label><label><input type="checkbox" class="u-team" value="trainee"> Trainee</label></div></div>
             <div class="form-group" id="u-email-wrap"><label class="form-label">Email (manager: tujuan reminder agenda; editor: notifikasi intranet)</label><input class="form-input" id="u-email" type="email" placeholder="nama@gmail.com"></div>
@@ -781,7 +781,7 @@ tr.u-suspended td:last-child,tr.u-suspended td.u-keep{opacity:1;}
         <div class="panel">
           <div class="panel-header"><span class="panel-title">Daftar Akun</span></div>
           <div class="panel-body" style="padding:0;">
-            <table class="member-table"><thead><tr><th>Username</th><th>Nama</th><th>Role</th><th>Tim</th><th>Email</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="users-tbody"></tbody></table>
+            <table class="member-table"><thead><tr><th>Username</th><th>Nama</th><th>Role</th><th>Tim</th><th>Intranet</th><th>Email</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="users-tbody"></tbody></table>
           </div>
         </div>
       </div>
@@ -954,10 +954,18 @@ async function putFile_(path,b64,mime){
   return sb.storage.from('photos').getPublicUrl(path).data.publicUrl;
 }
 const DVL_={editor_foto:'Editor Foto',editor_video:'Editor Video',kreatif:'Kreatif'};
+const intraLbl=u=>{
+  if(u.role==='editor') return esc(DVL_[u.divisi]||'Editor');
+  const i=u.intra; if(!i) return '—';
+  return esc(i.role)+(i.divisi?' · '+esc(DVL_[i.divisi]||i.divisi):'')+(i.role==='editor'&&!i.divisi?' · <span style="color:var(--danger)">belum ada divisi</span>':'');
+};
 async function listUsers_(){
-  const base=chk(await sb.from('profiles').select('*').order('username')).map(pub), have=new Set(base.map(u=>u.username));
-  let ed=[]; try{ const r=await sb.from('staff_profiles').select('*').eq('staff_role','editor').order('nama'); ed=r.error?[]:(r.data||[]); }catch(e){}
-  return base.concat(ed.filter(e=>e.username&&!have.has(e.username)).map(e=>({username:e.username,name:e.nama,role:'editor',divisi:e.divisi||'',staffId:e.id,teams:'',email:e.email_kontak||'',status:e.aktif===false?'suspended':'active',memberId:'',phone:'',bio:'',photo:'',reqUsername:'',joined:''})));
+  const base=chk(await sb.from('profiles').select('*').order('username')).map(pub);
+  let st=[]; try{ const r=await sb.from('staff_profiles').select('*'); st=r.error?[]:(r.data||[]); }catch(e){}
+  const byU={}; st.forEach(e=>{ if(e.username) byU[e.username]=e; });
+  base.forEach(u=>{ const e=byU[u.username]; if(e) u.intra={id:e.id,role:e.staff_role,divisi:e.divisi||'',aktif:e.aktif!==false}; });
+  const have=new Set(base.map(u=>u.username));
+  return base.concat(st.filter(e=>e.staff_role==='editor'&&e.username&&!have.has(e.username)).map(e=>({username:e.username,name:e.nama,role:'editor',divisi:e.divisi||'',staffId:e.id,teams:'',email:e.email_kontak||'',status:e.aktif===false?'suspended':'active',memberId:'',phone:'',bio:'',photo:'',reqUsername:'',joined:''})));
 }
 async function ks_(body){   // Edge Function milik intranet untuk kelola akun editor
   const r=await sb.functions.invoke('kelola-staff',{body});
@@ -1145,6 +1153,7 @@ const OPS={
     const uname=S_(d.username).trim().toLowerCase();
     if(!UNAME_.test(uname)) return {ok:false,error:'Username 3-30 karakter: huruf kecil, angka, titik, strip, garis bawah'};
     if(['admin','manager','member','editor'].indexOf(d.role)<0) return {ok:false,error:'Role tidak valid'};
+    if(d.role!=='editor'&&d.intraId&&['editor_foto','editor_video','kreatif'].indexOf(d.divisi)>=0) chk(await sb.from('staff_profiles').update({divisi:d.divisi}).eq('id',d.intraId));
     if(d.role==='editor'){
       if(['editor_foto','editor_video','kreatif'].indexOf(d.divisi)<0) return {ok:false,error:'Pilih jenis editor'};
       const nama=S_(d.name).trim(); if(!nama) return {ok:false,error:'Nama wajib diisi'};
@@ -1311,7 +1320,7 @@ async function renderUsers(){
   if(!ME||ME.role!=='admin') return;
   const r=await api('users_list'); if(!r.ok) return showToast(r.error,'error');
   USERS=r.users;
-  renderReq();document.getElementById('users-tbody').innerHTML=USERS.map(u=>{const on=u.status!=='suspended',self=ME&&u.username===ME.username;return `<tr class="${on?'':'u-suspended'}"><td><b>${esc(u.username)}</b></td><td>${esc(u.name)}</td><td>${u.role==='admin'?'Admin':u.role==='editor'?'Editor':u.role==='member'?'Member':'Manager'}</td><td>${u.role==='admin'?'Semua':u.role==='editor'?esc(DVL_[u.divisi]||'—'):(u.teams||'—').toUpperCase().replace(/,/g,', ')}</td><td>${esc(u.email||'—')}</td><td class="u-keep"><div class="u-status"><label class="toggle" title="${self?'Tidak bisa menangguhkan akun sendiri':(on?'Matikan untuk menangguhkan':'Nyalakan untuk mengaktifkan')}"><input type="checkbox" ${on?'checked':''} ${self?'disabled':''} onchange="setStatus('${esc(u.username)}',this.checked)"><span class="toggle-slider"></span></label><span class="${on?'badge-on':'badge-off'}">${on?'Aktif':'Ditangguhkan'}</span></div></td><td class="u-keep"><div style="display:flex;gap:6px;"><button class="btn btn-ghost btn-sm" onclick="editUser('${esc(u.username)}')">Edit</button>${u.role==='manager'?`<button class="btn btn-ghost btn-sm" onclick="openNotice('${esc(u.username)}')">⚠ Teguran</button>`:''}<button class="btn btn-danger btn-sm" onclick="delUser('${esc(u.username)}')">Hapus</button></div></td></tr>`;}).join('');
+  renderReq();document.getElementById('users-tbody').innerHTML=USERS.map(u=>{const on=u.status!=='suspended',self=ME&&u.username===ME.username;return `<tr class="${on?'':'u-suspended'}"><td><b>${esc(u.username)}</b></td><td>${esc(u.name)}</td><td>${u.role==='admin'?'Admin':u.role==='editor'?'Editor':u.role==='member'?'Member':'Manager'}</td><td>${u.role==='admin'?'Semua':u.role==='editor'?esc(DVL_[u.divisi]||'—'):(u.teams||'—').toUpperCase().replace(/,/g,', ')}</td><td>${intraLbl(u)}</td><td>${esc(u.email||'—')}</td><td class="u-keep"><div class="u-status"><label class="toggle" title="${self?'Tidak bisa menangguhkan akun sendiri':(on?'Matikan untuk menangguhkan':'Nyalakan untuk mengaktifkan')}"><input type="checkbox" ${on?'checked':''} ${self?'disabled':''} onchange="setStatus('${esc(u.username)}',this.checked)"><span class="toggle-slider"></span></label><span class="${on?'badge-on':'badge-off'}">${on?'Aktif':'Ditangguhkan'}</span></div></td><td class="u-keep"><div style="display:flex;gap:6px;"><button class="btn btn-ghost btn-sm" onclick="editUser('${esc(u.username)}')">Edit</button>${u.role==='manager'?`<button class="btn btn-ghost btn-sm" onclick="openNotice('${esc(u.username)}')">⚠ Teguran</button>`:''}<button class="btn btn-danger btn-sm" onclick="delUser('${esc(u.username)}')">Hapus</button></div></td></tr>`;}).join('');
 }
 function esc(t){return String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 async function setStatus(n,on){
@@ -1324,15 +1333,15 @@ function editUser(n){
   document.getElementById('u-name').value=u.username; document.getElementById('u-name').readOnly=true;
   document.getElementById('u-full').value=u.name; document.getElementById('u-role').value=u.role;
   document.getElementById('u-pass').value=''; document.getElementById('u-pass').placeholder='Kosongkan jika tidak diganti';
-  document.getElementById('u-email').value=u.email||''; if(u.role==='editor') document.getElementById('u-div').value=u.divisi||'editor_foto'; userRoleUI(u.memberId); const ts=(u.teams||'').split(','); document.querySelectorAll('.u-team').forEach(c=>c.checked=ts.includes(c.value));
+  document.getElementById('u-email').value=u.email||''; window._intraEd=(u.intra&&u.intra.role==='editor')?u.intra.id:null; document.getElementById('u-div').value=u.role==='editor'?(u.divisi||''):(u.intra?u.intra.divisi||'':''); userRoleUI(u.memberId); const ts=(u.teams||'').split(','); document.querySelectorAll('.u-team').forEach(c=>c.checked=ts.includes(c.value));
   window.scrollTo(0,0);
 }
 function resetUserForm(){
-  userRoleUI(); ['u-name','u-full','u-pass','u-email'].forEach(i=>document.getElementById(i).value=''); document.querySelectorAll('.u-team').forEach(c=>c.checked=false);
+  window._intraEd=null; document.getElementById('u-div').value=''; userRoleUI(); ['u-name','u-full','u-pass','u-email'].forEach(i=>document.getElementById(i).value=''); document.querySelectorAll('.u-team').forEach(c=>c.checked=false);
   document.getElementById('u-name').readOnly=false; document.getElementById('u-pass').placeholder='Minimal 6 karakter (editor: 8)';
 }
 async function saveUser(){
-  const d={username:document.getElementById('u-name').value,name:document.getElementById('u-full').value,role:document.getElementById('u-role').value,divisi:document.getElementById('u-div').value,password:document.getElementById('u-pass').value,email:document.getElementById('u-email').value,memberId:document.getElementById('u-member').value,teams:[...document.querySelectorAll('.u-team:checked')].map(c=>c.value)};
+  const d={username:document.getElementById('u-name').value,name:document.getElementById('u-full').value,role:document.getElementById('u-role').value,divisi:document.getElementById('u-div').value,intraId:window._intraEd||'',password:document.getElementById('u-pass').value,email:document.getElementById('u-email').value,memberId:document.getElementById('u-member').value,teams:[...document.querySelectorAll('.u-team:checked')].map(c=>c.value)};
   const r=await api('user_save',d);
   if(!r.ok) return showToast(r.error,'error');
   showToast('Akun disimpan','success'); resetUserForm(); renderUsers();
@@ -1750,7 +1759,7 @@ function userRoleUI(sel){
   const el=document.getElementById('u-member'), mem=document.getElementById('u-role').value==='member', cur=sel||el.value;
   const rl=document.getElementById('u-role').value, ed=rl==='editor';
   document.getElementById('u-member-wrap').style.display=mem?'':'none';
-  document.getElementById('u-div-wrap').style.display=ed?'':'none';
+  document.getElementById('u-div-wrap').style.display=(ed||window._intraEd)?'':'none';
   document.getElementById('u-team-wrap').style.display=(ed||rl==='admin')?'none':'';
   el.innerHTML=store.members.map(m=>`<option value="${esc(m.id)}">${esc(m.nick||m.name)} (${esc(TN[m.team]||m.team)})</option>`).join(''); if(cur) el.value=cur;
 }
