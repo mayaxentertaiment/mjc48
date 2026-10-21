@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="id">
-<head>
+<head><meta http-equiv="Cache-Control" content="no-cache, must-revalidate"><meta http-equiv="Pragma" content="no-cache">
 <meta charset="UTF-8">
    <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>MJC48 — Satu Panggung, Empat Warna</title>
@@ -1148,8 +1148,8 @@ document.querySelectorAll('.dropdown-toggle').forEach(function(btn){
     }).join('')+(anyOpen?'<a href="#member" class="nav-link dropdown-link">Semua Member</a>':'<span class="nav-link dropdown-link disabled">Semua Member <small style="opacity:0.6; font-size: 0.75em;">(Coming Soon)</small></span>');
   }
 
-  fetch(API).then(function(r){return r.json();}).then(render).catch(function(){/* gagal: tampilan bawaan tetap dipakai */});
+  fetch(API+(API.indexOf('?')<0?'?':'&')+'t='+Date.now(),{cache:'no-store'}).then(function(r){return r.json();}).then(render).catch(function(){/* gagal: tampilan bawaan tetap dipakai */});
 })();
 </script>
-</body>
+<div style="position:fixed;right:10px;bottom:6px;font-size:10px;opacity:.45;z-index:9999;pointer-events:none">v2026.10.21-8</div></body>
 </html>
