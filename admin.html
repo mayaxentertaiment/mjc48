@@ -1166,7 +1166,11 @@ function applyRole(){
   if(ME){ nm.textContent=ME.name||ME.username; rl.textContent=ME.role==='admin'?'Admin (akses penuh)':(ME.role==='member'?'Member':'Manager'); document.getElementById('nav-tasks-txt').textContent=ME.role==='member'?'Tugas Saya':'Tugas Member'; av.textContent=(ME.name||ME.username)[0].toUpperCase(); }
   const ua=document.getElementById('users-panel'); if(ua) ua.style.display=ME&&ME.role==='admin'?'':'none';
 }
-function logout(){ sb.auth.signOut().finally(()=>location.reload()); }
+async function logout(){
+  try{ await Promise.race([sb.auth.signOut({scope:'local'}),new Promise(r=>setTimeout(r,1500))]); }catch(e){}
+  try{ Object.keys(localStorage).filter(k=>k.startsWith('sb-')).forEach(k=>localStorage.removeItem(k)); }catch(e){}
+  location.replace(location.pathname);
+}
 async function doLogin(silent){
   const err=document.getElementById('login-err');
   try{
