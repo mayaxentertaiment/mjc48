@@ -331,8 +331,9 @@
     background:var(--macc,var(--blue));
     clip-path:polygon(0% 0%, 100% 0%, 100% 68%, 50% 100%, 0% 68%);
     display:flex;align-items:center;justify-content:center;
-    margin-bottom:14px;
+    margin-bottom:14px;position:relative;overflow:hidden;
   }
+  .shield-avatar .sa-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center bottom;transform-origin:center bottom;transform:translate(var(--x,0%),var(--y,0%)) scale(var(--z,1));}
   .shield-avatar span{
     font-family:'Fraunces',serif;font-weight:700;font-size:30px;color:#fff;
   }
@@ -1062,7 +1063,7 @@ document.querySelectorAll('.dropdown-toggle').forEach(function(btn){
       return '<p>'+p.replace(/\n/g,'<br>').replace(/(https?:\/\/[^\s<]+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>')+'</p>';
     }).join('');
   }
-  function av(m){return /^https:\/\//.test(m.photo||'')?'<img src="'+esc(m.photo)+'" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover">':'<span>'+ini(m.name)+'</span>';}
+  function av(m){return /^https:\/\//.test(m.photo||'')?'<span>'+ini(m.name)+'</span><img class="sa-photo" src="'+esc(m.photo)+'" alt="" loading="lazy" style="--z:'+((Number(m.pz)||100)/100)+';--x:'+(Number(m.px)||0)+'%;--y:'+(Number(m.py)||0)+'%">':'<span>'+ini(m.name)+'</span>';}
   function pad(n){return n<10?'0'+n:''+n;}
 
   function maint(site){
@@ -1147,12 +1148,7 @@ document.querySelectorAll('.dropdown-toggle').forEach(function(btn){
     }).join('')+(anyOpen?'<a href="#member" class="nav-link dropdown-link">Semua Member</a>':'<span class="nav-link dropdown-link disabled">Semua Member <small style="opacity:0.6; font-size: 0.75em;">(Coming Soon)</small></span>');
   }
 
-  var KEY='mjc48-data';
-try{ var c=localStorage.getItem(KEY); if(c) render(JSON.parse(c)); }catch(e){}
-fetch(API).then(function(r){return r.json();}).then(function(d){
-  try{ localStorage.setItem(KEY,JSON.stringify(d)); }catch(e){}
-  render(d);
-}).catch(function(){});
+  fetch(API).then(function(r){return r.json();}).then(render).catch(function(){/* gagal: tampilan bawaan tetap dipakai */});
 })();
 </script>
 </body>
