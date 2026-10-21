@@ -843,6 +843,8 @@ tr.u-suspended td:last-child,tr.u-suspended td.u-keep{opacity:1;}
   </div>
 </div>
 
+<div class="modal-overlay" id="modal-taskd" onclick="if(event.target===this)closeModal('modal-taskd')"><div class="modal"><div class="modal-header"><span class="modal-title">Detail Tugas</span><button class="modal-close" onclick="closeModal('modal-taskd')">✕</button></div><div class="modal-body" id="taskd-body"></div>
+<div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-taskd')">Tutup</button><button class="btn btn-primary" id="taskd-submit" onclick="submitTask()">Kirim Tugas</button></div></div></div>
 <div class="modal-overlay" id="modal-task" onclick="if(event.target===this)closeModal('modal-task')"><div class="modal"><div class="modal-header"><span class="modal-title">Tugas Member</span><button class="modal-close" onclick="closeModal('modal-task')">✕</button></div><div class="modal-body">
 <div class="form-group"><label class="form-label">Member</label><select class="form-select" id="t-member"></select></div>
 <div class="form-group"><label class="form-label">Tugas</label><input class="form-input" id="t-title" placeholder="contoh: Hafalkan koreo lagu baru"></div>
@@ -1423,7 +1425,7 @@ function renderTasks(){
   document.getElementById('task-add-btn').style.display=mem?'none':'';
   const done=TASKS.filter(t=>t.status==='done').length;
   document.getElementById('tasks-sum').textContent=TASKS.length?`${done} dari ${TASKS.length} tugas selesai`:'Belum ada tugas.';
-  document.getElementById('tasks-tbody').innerHTML=TASKS.map(t=>{const late=t.due&&t.due<today&&t.status!=='done';return `<tr><td>${esc(mName(t.memberId))}</td><td><b>${esc(t.title)}</b>${t.note?`<div style="font-size:12px;color:var(--ink-soft)">${esc(t.note)}</div>`:''}</td><td class="${late?'t-late':''}">${esc(t.due||'—')}${late?' ⚠':''}</td>
+  document.getElementById('tasks-tbody').innerHTML=TASKS.map(t=>{const late=t.due&&t.due<today&&t.status!=='done';return `<tr><td onclick="openTaskD('${t.id}')" style="cursor:pointer">${esc(mName(t.memberId))}</td><td onclick="openTaskD('${t.id}')" style="cursor:pointer"><b style="color:var(--brand)">${esc(t.title)}</b>${t.subAt?' <span class="badge-on">Dikirim</span>':''}${t.note?`<div style="font-size:12px;color:var(--ink-soft)">${esc(t.note)}</div>`:''}</td><td class="${late?'t-late':''}">${esc(t.due||'—')}${late?' ⚠':''}</td>
   <td><select class="form-select" id="ts-${t.id}" onchange="taskUpd('${t.id}')">${Object.keys(ST).map(k=>`<option value="${k}" ${t.status===k?'selected':''}>${ST[k]}</option>`).join('')}</select></td>
   <td><input type="range" min="0" max="100" step="5" value="${t.progress||0}" id="tp-${t.id}" style="width:100%" onchange="taskUpd('${t.id}')"><div class="t-bar"><i style="width:${t.progress||0}%"></i></div><small>${t.progress||0}%</small></td>
   <td>${mem?'':`<button class="btn btn-ghost btn-sm" onclick="openTask('${t.id}')">Edit</button> <button class="btn btn-danger btn-sm" onclick="delTask('${t.id}')">Hapus</button>`}</td></tr>`;}).join('');
@@ -1462,6 +1464,27 @@ function userRoleUI(sel){
   const el=document.getElementById('u-member'), mem=document.getElementById('u-role').value==='member', cur=sel||el.value;
   document.getElementById('u-member-wrap').style.display=mem?'':'none';
   el.innerHTML=store.members.map(m=>`<option value="${esc(m.id)}">${esc(m.nick||m.name)} (${esc(TN[m.team]||m.team)})</option>`).join(''); if(cur) el.value=cur;
+}
+
+function openTaskD(id){
+  const t=TASKS.find(x=>String(x.id)===String(id)); if(!t) return; window._taskD=t.id;
+  const mem=ME&&ME.role==='member', ok=/^https?:\/\//.test(t.subLink||'');
+  document.getElementById('taskd-body').innerHTML=`
+   <div style="font-size:17px;font-weight:700;margin-bottom:4px">${esc(t.title)}</div>
+   <div style="font-size:13px;color:var(--ink-soft);margin-bottom:12px">Untuk <b>${esc(mName(t.memberId))}</b> · dibuat ${esc(t.created||'—')} oleh ${esc(t.by||'—')} · tenggat ${esc(t.due||'—')}</div>
+   <div style="white-space:pre-wrap;margin-bottom:14px">${esc(t.note||'Tidak ada catatan dari manager.')}</div>
+   <div style="font-size:13px;font-weight:600">${ST[t.status]||''} · ${t.progress||0}%</div><div class="t-bar"><i style="width:${t.progress||0}%"></i></div>
+   <hr style="border:0;border-top:1px solid var(--line);margin:16px 0">
+   <div style="font-weight:700;margin-bottom:8px">Hasil / Submit${t.subAt?` <span class="badge-on">Dikirim ${esc(t.subAt)}</span>`:''}</div>
+   ${mem?`<textarea class="form-textarea" id="td-note" rows="4" placeholder="Catatan hasil kerja…">${esc(t.subNote||'')}</textarea><input class="form-input" id="td-link" style="margin-top:8px" placeholder="Link hasil (Drive, YouTube, dll) — opsional" value="${esc(t.subLink||'')}">`
+     :(t.subAt?`<div style="white-space:pre-wrap">${esc(t.subNote||'—')}</div>${ok?`<div style="margin-top:8px"><a href="${esc(t.subLink)}" target="_blank" rel="noopener noreferrer">${esc(t.subLink)}</a></div>`:''}`:'<div style="color:var(--ink-soft)">Belum ada submit dari member.</div>')}`;
+  document.getElementById('taskd-submit').style.display=mem?'':'none';
+  document.getElementById('taskd-submit').textContent=t.subAt?'Kirim Ulang':'Kirim Tugas';
+  openModal('modal-taskd');
+}
+async function submitTask(){
+  const r=await api('task_submit',{id:window._taskD,note:document.getElementById('td-note').value,link:document.getElementById('td-link').value});
+  if(!r.ok) return showToast(r.error,'error'); closeModal('modal-taskd'); showToast('Tugas terkirim ke manager','success'); loadTasks();
 }
 </script>
 </body>
