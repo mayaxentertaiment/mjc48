@@ -2,7 +2,7 @@
 <html lang="id">
 <head><meta http-equiv="Cache-Control" content="no-cache, must-revalidate"><meta http-equiv="Pragma" content="no-cache">
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>MJC48 Admin — Panel Internal</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -311,6 +311,33 @@ tr.u-suspended td:last-child,tr.u-suspended td.u-keep{opacity:1;}
 .pf-ava img{width:100%;height:100%;object-fit:cover}
 .pf-chip{display:inline-block;font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:99px;background:rgba(79,70,229,.1);color:var(--brand);margin:4px 6px 0 0}
 .pf-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}@media(max-width:900px){.pf-grid{grid-template-columns:1fr}}
+
+/* ===== RESPONSIF OTOMATIS: laptop / tablet / HP ===== */
+.menu-btn{display:none;background:none;border:1px solid var(--line);border-radius:10px;width:42px;height:42px;font-size:20px;line-height:1;cursor:pointer;color:var(--ink);flex:none;align-items:center;justify-content:center}
+.tb-title{min-width:0;flex:1}.tb-title .page-title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sb-overlay{position:fixed;inset:0;background:rgba(10,7,48,.55);z-index:99;opacity:0;visibility:hidden;transition:opacity .2s,visibility .2s}
+.sb-overlay.show{opacity:1;visibility:visible}
+@media(min-width:861px) and (max-width:1100px){:root{--sidebar-w:220px}.content{padding:22px}}
+@media(max-width:1000px){.rs-grid{grid-template-columns:1fr!important}}
+@media(max-width:860px){
+ .sidebar{transition:transform .25s ease;width:min(290px,86vw)}.sidebar.open{transform:none;box-shadow:0 0 60px rgba(0,0,0,.45)}
+ .menu-btn{display:inline-flex}.topbar{padding:env(safe-area-inset-top) 14px 0;height:calc(60px + env(safe-area-inset-top));gap:10px}
+ .page-breadcrumb{display:none}.topbar-actions{gap:6px;flex:none}.btn{min-height:40px}
+ .content{padding:16px 14px calc(24px + env(safe-area-inset-bottom))}
+ .member-table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}.member-table th,.member-table td{white-space:nowrap}
+ .news-row{grid-template-columns:auto 1fr;gap:10px 12px}.news-row>:nth-child(n+3){grid-column:1/-1}
+ .sched-admin-row{grid-template-columns:72px 1fr;gap:10px 12px}.sched-admin-row>:nth-child(n+3){grid-column:1/-1}
+ .form-row,.quick-actions{grid-template-columns:1fr}.team-toggle-grid{grid-template-columns:1fr}
+ .cal-grid{gap:2px}
+}
+@media(max-width:600px){
+ .bt{display:none}.stats-grid{grid-template-columns:1fr 1fr;gap:10px}
+ .form-input,.form-select,.form-textarea,input,select,textarea{font-size:16px}
+ .modal-overlay{align-items:flex-end}.modal{max-width:100%;max-height:92vh;border-radius:18px 18px 0 0}
+ .modal-body{padding:18px 16px}.modal-footer{padding:12px 16px calc(12px + env(safe-area-inset-bottom));flex-wrap:wrap}.modal-footer .btn{flex:1 1 auto}
+ .toast-container{left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom))}.toast{max-width:none;min-width:0}
+}
+@media(min-width:1700px){.content{max-width:1560px;width:100%;margin:0 auto}}
 </style>
 </head>
 <body>
@@ -326,6 +353,7 @@ tr.u-suspended td:last-child,tr.u-suspended td.u-keep{opacity:1;}
 </div>
 
 <!-- SIDEBAR -->
+<div class="sb-overlay" id="sbOverlay" onclick="closeSidebar()"></div>
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-brand">
     <div class="brand-icon">M</div>
@@ -390,13 +418,14 @@ tr.u-suspended td:last-child,tr.u-suspended td.u-keep{opacity:1;}
 <!-- MAIN -->
 <div class="main">
   <div class="topbar">
-    <div>
+    <button class="menu-btn" id="menuBtn" aria-label="Buka menu" onclick="toggleSidebar()">☰</button>
+    <div class="tb-title">
       <div class="page-title" id="topbarTitle">Dashboard</div>
       <div class="page-breadcrumb" id="topbarBreadcrumb">MJC48 Admin / Beranda</div>
     </div>
     <div class="topbar-actions">
-      <button class="btn btn-ghost btn-sm" onclick="window.open('index.html','_blank')">👁 Lihat Publik</button>
-      <button class="btn btn-primary btn-sm" onclick="saveAll()">💾 Simpan Semua</button>
+      <button class="btn btn-ghost btn-sm" onclick="window.open('index.html','_blank')">👁<span class="bt"> Lihat Publik</span></button>
+      <button class="btn btn-primary btn-sm" onclick="saveAll()">💾<span class="bt"> Simpan Semua</span></button>
     </div>
   </div>
 
@@ -491,7 +520,7 @@ tr.u-suspended td:last-child,tr.u-suspended td.u-keep{opacity:1;}
 
     <!-- HERO EDITOR -->
     <div class="page" id="page-hero-editor">
-      <div style="display:grid;grid-template-columns:1fr 400px;gap:22px;">
+      <div class="rs-grid" style="display:grid;grid-template-columns:1fr 400px;gap:22px;">
         <div class="panel">
           <div class="panel-header"><span class="panel-title">Edit Konten Hero</span><span style="font-size:12px;color:var(--ink-soft);">Bagian paling atas web publik</span></div>
           <div class="panel-body">
@@ -670,7 +699,7 @@ tr.u-suspended td:last-child,tr.u-suspended td.u-keep{opacity:1;}
 
     <!-- SETTINGS -->
     <div class="page" id="page-settings">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:22px;">
+      <div class="rs-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:22px;">
         <div>
           <div class="panel">
             <div class="panel-header"><span class="panel-title">Info Website</span></div>
@@ -1525,6 +1554,11 @@ function updateDashStats(){
 }
 
 /* MODAL */
+function toggleSidebar(){const o=document.getElementById('sidebar').classList.toggle('open');document.getElementById('sbOverlay').classList.toggle('show',o);document.body.style.overflow=o?'hidden':'';}
+function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sbOverlay').classList.remove('show');document.body.style.overflow='';}
+document.addEventListener('click',e=>{if(e.target.closest('.nav-item[data-page]'))closeSidebar();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSidebar();});
+window.addEventListener('resize',()=>{if(innerWidth>860)closeSidebar();});
 function openModal(id){ document.getElementById(id).classList.add('open'); }
 function closeModal(id){ window._editId=null; if(id==='modal-add-member'){ window._editMemId=null; window._memPhoto=''; ['mi-name','mi-nick','mi-gen','mi-dob'].forEach(i=>document.getElementById(i).value=''); document.getElementById('mi-photo-prev').style.display='none'; document.getElementById('mi-photo-txt').textContent='Klik untuk upload foto'; } document.getElementById(id).classList.remove('open'); }
 
