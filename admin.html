@@ -364,12 +364,6 @@ tr.u-suspended td:last-child,tr.u-suspended td.u-keep{opacity:1;}
     <div class="nav-item" data-page="settings">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M7 1h2l.5 2a5 5 0 011.3.75l1.9-.75 1 1.73-1.5 1.3a5 5 0 010 1.44l1.5 1.3-1 1.73-1.9-.75A5 5 0 019.5 11l-.5 2H7l-.5-2a5 5 0 01-1.3-.75l-1.9.75-1-1.73 1.5-1.3a5 5 0 010-1.44L2.3 5.23l1-1.73 1.9.75A5 5 0 016.5 3L7 1zM8 5a3 3 0 100 6A3 3 0 008 5z"/></svg>Pengaturan
     </div>
-    <div class="nav-item" data-page="agenda">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M4 1h1.5v1.5h5V1H12v1.5h1.5V14h-11V2.5H4V1zM4 6v6.5h8V6H4z"/></svg>Agenda &amp; Kalender
-    </div>
-    <div class="nav-item" data-page="tasks">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M2 2h12v12H2V2zm1.5 1.5v9h9v-9h-9zM7 10.5 4.8 8.3l1-1L7 8.5l3.2-3.2 1 1L7 10.5z"/></svg><span id="nav-tasks-txt">Tugas Member</span>
-    </div>
     <div class="nav-item" data-page="profile">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm0 1.5c-2.7 0-5 1.4-5 3.5V14h10v-1c0-2.1-2.3-3.5-5-3.5z"/></svg>Profil Saya
     </div>
@@ -410,7 +404,7 @@ tr.u-suspended td:last-child,tr.u-suspended td.u-keep{opacity:1;}
 
     <!-- DASHBOARD -->
     <div class="page active" id="page-dashboard">
-      <div id="agenda-banner" onclick="goPage('agenda')" style="display:none;cursor:pointer;background:rgba(43,28,255,.08);border-left:3px solid var(--blue);padding:12px 16px;margin-bottom:18px;font-size:13.5px;"></div>
+      
       <div class="stats-grid">
         <div class="stat-card s-blue">
           <div class="stat-label">Total Member</div>
@@ -729,31 +723,6 @@ tr.u-suspended td:last-child,tr.u-suspended td.u-keep{opacity:1;}
     </div>
 
     <!-- PREVIEW -->
-    <div class="page" id="page-agenda">
-      <div class="panel" style="margin-bottom:22px;">
-        <div class="panel-header"><span class="panel-title">Ringkasan 7 Hari ke Depan</span><span id="ag-teams" style="font-size:12.5px;color:var(--ink-soft);"></span></div>
-        <div class="panel-body" id="ag-summary"></div>
-      </div>
-      <div style="display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:22px;align-items:start;">
-        <div class="panel">
-          <div class="panel-header"><span class="panel-title">Kalender</span></div>
-          <div class="panel-body">
-            <div class="cal-head"><button class="btn btn-ghost btn-sm" onclick="calMove(-1)">‹</button><b id="cal-title"></b><button class="btn btn-ghost btn-sm" onclick="calMove(1)">›</button></div>
-            <div class="cal-grid" id="cal-grid"></div>
-            <div style="margin-top:16px;" id="cal-day"></div>
-          </div>
-        </div>
-        <div class="panel">
-          <div class="panel-header"><span class="panel-title">Reminder</span></div>
-          <div class="panel-body">
-            <p style="font-size:13px;color:var(--ink-soft);margin-bottom:12px;">Reminder otomatis dikirim ke email manager tiap pagi pukul 07.00 (hari ini &amp; besok; ringkasan 7 hari tiap Senin), sesuai tim yang dipegang masing-masing. Agenda baru juga langsung dikirim saat ditambahkan. Hanya terkirim kalau ada agenda.</p>
-            <div class="form-group"><label class="form-label">Dikirim ke</label><div id="ag-email" style="font-size:14px;font-weight:600;"></div><div id="ag-email-hint" style="font-size:12px;color:var(--ink-soft);margin-top:4px;"></div></div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn btn-ghost btn-sm" id="ag-remind-btn" onclick="remindNow()">Kirim ringkasan sekarang</button></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <div class="page" id="page-accounts"><div id="req-box"></div>
       <div class="panel" style="max-width:520px;margin-bottom:22px;">
         <div class="panel-header"><span class="panel-title">Ganti Password Saya</span></div>
@@ -787,13 +756,6 @@ tr.u-suspended td:last-child,tr.u-suspended td.u-keep{opacity:1;}
       </div>
     </div>
 
-    <div class="page" id="page-tasks">
-      <div class="panel">
-        <div class="panel-header"><span class="panel-title" id="tasks-title">Tugas Member</span><button class="btn btn-primary btn-sm" id="task-add-btn" onclick="openTask()">+ Tugas Baru</button></div>
-        <div class="panel-body"><div id="tasks-sum" style="font-size:13px;color:var(--ink-soft);margin-bottom:14px;"></div>
-          <table class="member-table"><thead><tr><th>Member</th><th>Tugas</th><th>Tenggat</th><th>Status</th><th style="min-width:180px">Progress</th><th></th></tr></thead><tbody id="tasks-tbody"></tbody></table></div>
-      </div>
-    </div>
     <div class="page" id="page-profile">
       <div class="panel"><div class="panel-body">
         <div class="pf-head"><div class="pf-ava" id="pf-ava"></div><div><div style="font-size:20px;font-weight:700" id="pf-title"></div><div style="font-size:13px;color:var(--ink-soft)" id="pf-sub"></div><div id="pf-chips"></div></div></div>
@@ -875,14 +837,6 @@ tr.u-suspended td:last-child,tr.u-suspended td.u-keep{opacity:1;}
   </div>
 </div>
 
-<div class="modal-overlay" id="modal-taskd" onclick="if(event.target===this)closeModal('modal-taskd')"><div class="modal"><div class="modal-header"><span class="modal-title">Detail Tugas</span><button class="modal-close" onclick="closeModal('modal-taskd')">✕</button></div><div class="modal-body" id="taskd-body"></div>
-<div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-taskd')">Tutup</button><button class="btn btn-primary" id="taskd-submit" onclick="submitTask()">Kirim Tugas</button></div></div></div>
-<div class="modal-overlay" id="modal-task" onclick="if(event.target===this)closeModal('modal-task')"><div class="modal"><div class="modal-header"><span class="modal-title">Tugas Member</span><button class="modal-close" onclick="closeModal('modal-task')">✕</button></div><div class="modal-body">
-<div class="form-group"><label class="form-label">Member</label><select class="form-select" id="t-member"></select></div>
-<div class="form-group"><label class="form-label">Tugas</label><input class="form-input" id="t-title" placeholder="contoh: Hafalkan koreo lagu baru"></div>
-<div class="form-group"><label class="form-label">Tenggat</label><input class="form-input" id="t-due" type="date"></div>
-<div class="form-group"><label class="form-label">Catatan</label><textarea class="form-textarea" id="t-note" rows="3"></textarea></div></div>
-<div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-task')">Batal</button><button class="btn btn-primary" onclick="saveTask()">Simpan</button></div></div></div>
 <div class="modal-overlay" id="modal-notice" onclick="if(event.target===this)closeModal('modal-notice')"><div class="modal"><div class="modal-header"><span class="modal-title">⚠ Beri Teguran</span><button class="modal-close" onclick="closeModal('modal-notice')">✕</button></div><div class="modal-body">
 <p style="font-size:13px;color:var(--ink-soft);margin-bottom:10px;">Untuk: <b id="n-to-name"></b>. Teguran tampil di panel manager saat login dan dikirim ke emailnya.</p>
 <textarea class="form-textarea" id="n-text" rows="5" placeholder="Tulis isi teguran…"></textarea></div>
@@ -1200,13 +1154,13 @@ async function api(op,data){
     return {ok:false,error:m,expired:/JWT|not authenticated|Auth session missing/i.test(m)};
   }
 }
-const CAN_MANAGER=['dashboard','schedule-manager','member-manager','agenda','accounts','preview','tasks','profile'];
-function can(pid){ return !ME||ME.role==='admin'||(ME.role==='member'?(pid==='tasks'||pid==='profile'):CAN_MANAGER.includes(pid)); }
+const CAN_MANAGER=['dashboard','schedule-manager','member-manager','accounts','preview','profile'];
+function can(pid){ return !ME||ME.role==='admin'||(ME.role==='member'?(pid==='profile'):CAN_MANAGER.includes(pid)); }
 function applyRole(){
   document.querySelectorAll('.nav-item[data-page]').forEach(n=>n.style.display=can(n.dataset.page)?'':'none');
   document.querySelectorAll('.quick-card').forEach(c=>{const m=(c.getAttribute('onclick')||'').match(/goPage\('([^']+)'/); if(m&&!can(m[1])) c.style.display='none';});
   const nm=document.querySelector('.user-name'), rl=document.querySelector('.user-role'), av=document.querySelector('.user-avatar');
-  if(ME){ nm.textContent=ME.name||ME.username; rl.textContent=ME.role==='admin'?'Admin (akses penuh)':(ME.role==='member'?'Member':'Manager'); document.getElementById('nav-tasks-txt').textContent=ME.role==='member'?'Tugas Saya':'Tugas Member'; av.textContent=(ME.name||ME.username)[0].toUpperCase(); }
+  if(ME){ nm.textContent=ME.name||ME.username; rl.textContent=ME.role==='admin'?'Admin (akses penuh)':(ME.role==='member'?'Member':'Manager'); av.textContent=(ME.name||ME.username)[0].toUpperCase(); }
   const ua=document.getElementById('users-panel'); if(ua) ua.style.display=ME&&ME.role==='admin'?'':'none';
 }
 function logout(){ sb.auth.signOut().finally(()=>location.reload()); }
@@ -1228,7 +1182,7 @@ async function doLogin(silent){
     store.teams=Object.assign({miii:false,jii:false,cii:false,trainee:false},d.teams);
     store.site=Object.assign({maintenance:false,msg:''},d.site);
     store.news=d.news; store.schedule=d.schedule; store.members=d.members; store.media=d.media||[];
-    LOADED=true; initUI(); renderMedia(); applyRole(); try{agendaBanner();}catch(e){} afterLogin(r);
+    LOADED=true; initUI(); renderMedia(); applyRole(); afterLogin(r);
     document.getElementById('login').style.display='none';
   }catch(e){
     // token hanya dibuang kalau server bilang sesi habis / login manual gagal, bukan karena koneksi lambat
@@ -1258,62 +1212,6 @@ function myTeams(){ if(!ME) return []; if(ME.role==='admin') return ['miii','jii
 function ymd(y,m,d){ return y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0'); }
 function dstr(d){ return ymd(d.getFullYear(),d.getMonth(),d.getDate()); }
 function schedKey(s){ const m=s.member&&store.members.find(x=>String(x.id)===String(s.member)); return m?m.team:tk(s.team); }
-function itemsOn(ds){
-  const t=myTeams(), r=[];
-  store.schedule.filter(s=>s.date===ds&&(schedKey(s)==='all'||t.includes(schedKey(s)))).forEach(s=>r.push({k:'j',time:s.time||'',text:s.title,sub:[s.time,s.venue,memberLabel(s)].filter(Boolean).join(' · ')}));
-  store.members.filter(m=>m.dob&&m.dob.slice(5)===ds.slice(5)&&t.includes(m.team)).forEach(m=>r.push({k:'b',time:'',text:'🎂 Ulang tahun '+(m.nick||m.name),sub:TN[m.team]||''}));
-  return r.sort((x,y)=>x.time.localeCompare(y.time));
-}
-const itemHtml=i=>`<div class="ag-item ${i.k==='b'?'b':''}">${esc(i.text)}<small>${esc(i.sub)}</small></div>`;
-function fmtDay(ds){ return new Date(ds+'T00:00:00').toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'}); }
-let calY,calM,calSel;
-function renderAgenda(){
-  const t=myTeams(), now=new Date();
-  document.getElementById('ag-teams').textContent=t.length?'Tim: '+t.map(x=>TN[x]).join(', '):'';
-  const adm=ME&&ME.role==='admin';
-  document.getElementById('ag-email').textContent=adm?'Email masing-masing manager':((ME&&ME.email)||'Belum ada email');
-  document.getElementById('ag-email-hint').textContent=adm?'Reminder dikirim ke manager sesuai tim yang dipegang, bukan ke email admin. Atur email manager di menu Akun.':((ME&&ME.email)?'Diatur oleh admin di menu Akun.':'Minta admin mengisi emailmu di menu Akun supaya reminder aktif.');
-  const rb=document.getElementById('ag-remind-btn'); if(rb) rb.textContent=adm?'Kirim ringkasan ke semua manager':'Kirim ringkasan sekarang';
-  if(!t.length){ document.getElementById('ag-summary').innerHTML='<p class="ag-empty">Belum ada tim yang ditetapkan untuk akunmu. Minta admin mengaturnya di menu Akun.</p>'; }
-  else{
-    let h='';
-    for(let i=0;i<7;i++){ const d=new Date(now.getFullYear(),now.getMonth(),now.getDate()+i), ds=dstr(d), it=itemsOn(ds);
-      if(it.length) h+=`<div class="ag-day"><h4>${i===0?'Hari ini':i===1?'Besok':''} ${fmtDay(ds)}</h4>${it.map(itemHtml).join('')}</div>`; }
-    document.getElementById('ag-summary').innerHTML=h||'<p class="ag-empty">Tidak ada kegiatan 7 hari ke depan.</p>';
-  }
-  if(calY==null){ calY=now.getFullYear(); calM=now.getMonth(); calSel=dstr(now); }
-  renderCal();
-}
-function calMove(n){ calM+=n; if(calM<0){calM=11;calY--;} if(calM>11){calM=0;calY++;} renderCal(); }
-function calPick(ds){ calSel=ds; renderCal(); }
-function renderCal(){
-  document.getElementById('cal-title').textContent=new Date(calY,calM,1).toLocaleDateString('id-ID',{month:'long',year:'numeric'});
-  const first=(new Date(calY,calM,1).getDay()+6)%7, days=new Date(calY,calM+1,0).getDate(), today=dstr(new Date());
-  let h=['Sen','Sel','Rab','Kam','Jum','Sab','Min'].map(x=>`<div class="cal-dow">${x}</div>`).join('');
-  for(let i=0;i<first;i++) h+='<div class="cal-cell out"></div>';
-  for(let d=1;d<=days;d++){
-    const ds=ymd(calY,calM,d), it=itemsOn(ds), j=it.filter(x=>x.k==='j').length, b=it.length-j;
-    h+=`<div class="cal-cell ${ds===today?'today':''} ${ds===calSel?'sel':''}" onclick="calPick('${ds}')">${d}${j?`<br><span class="cal-badge">${j} jadwal</span>`:''}${b?`<br><span class="cal-badge b">🎂 ${b}</span>`:''}</div>`;
-  }
-  document.getElementById('cal-grid').innerHTML=h;
-  const it=itemsOn(calSel);
-  document.getElementById('cal-day').innerHTML=`<h4 style="font-size:13px;margin-bottom:8px;">${fmtDay(calSel)}</h4>`+(it.length?it.map(itemHtml).join(''):'<p class="ag-empty">Tidak ada kegiatan.</p>');
-}
-function agendaBanner(){
-  const el=document.getElementById('agenda-banner'); if(!el||!myTeams().length) return;
-  const n=new Date(), t0=dstr(n), t1=dstr(new Date(n.getFullYear(),n.getMonth(),n.getDate()+1));
-  const a=itemsOn(t0), b=itemsOn(t1);
-  if(!a.length&&!b.length) return;
-  el.innerHTML='🔔 <b>Pengingat:</b> '+(a.length?a.length+' kegiatan hari ini':'')+(a.length&&b.length?', ':'')+(b.length?b.length+' kegiatan besok':'')+' untuk tim yang kamu pegang. <u>Lihat agenda</u>';
-  el.style.display='block';
-}
-async function remindNow(){
-  showToast('Mengirim…','');
-  try{
-    const r=await api('remind_me');
-    showToast(r.ok?(r.msg||'Terkirim.'):r.error,r.ok?'success':'error');
-  }catch(e){ showToast('Gagal: server belum versi terbaru atau izin email belum diberikan','error'); }
-}
 /* AKUN */
 let USERS=[];
 async function renderUsers(){
@@ -1375,7 +1273,7 @@ const pageInfo = {
   'preview':{ title:'Preview Web Publik', crumb:'MJC48 Admin / Preview' },
 };
 
-function goPage(pid){ if(pid==='tasks') setTimeout(loadTasks,0); if(pid==='profile') setTimeout(renderProfile,0);
+function goPage(pid){ if(pid==='profile') setTimeout(renderProfile,0);
   if(!can(pid)) pid='dashboard';
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item[data-page]').forEach(n=>n.classList.remove('active'));
@@ -1391,8 +1289,7 @@ function goPage(pid){ if(pid==='tasks') setTimeout(loadTasks,0); if(pid==='profi
   if(pid==='schedule-manager') renderSchedule();
   if(pid==='dashboard') updateDashStats();
   if(pid==='accounts') renderUsers();
-  if(pid==='agenda') renderAgenda();
-}
+  }
 
 document.querySelectorAll('.nav-item[data-page]').forEach(el=>{
   el.addEventListener('click',()=>goPage(el.dataset.page));
@@ -1709,38 +1606,6 @@ function renderMedia(){
   const el=document.getElementById('media-extra'); if(!el) return;
   el.innerHTML=(store.media||[]).map((m,i)=>`<div class="media-item" title="Klik untuk salin URL" onclick="navigator.clipboard.writeText('${esc(m.url)}');showToast('URL disalin','success')" style="background:#fff;"><img src="${esc(m.url)}" alt="" style="width:100%;height:100%;object-fit:contain"><div class="mi-name">${esc(m.name)}</div></div>`).join('');
 }
-/* ===== TUGAS MEMBER ===== */
-let TASKS=[];
-const ST={todo:'Belum mulai',doing:'Dikerjakan',done:'Selesai'};
-function mName(id){const m=store.members.find(x=>String(x.id)===String(id));return m?(m.nick||m.name):'(member dihapus)';}
-async function loadTasks(){ const r=await api('tasks'); if(!r.ok) return showToast(r.error,'error'); TASKS=r.tasks; renderTasks(); }
-function renderTasks(){
-  const mem=ME&&ME.role==='member', today=dstr(new Date());
-  document.getElementById('tasks-title').textContent=mem?'Tugas Saya':'Tugas Member (dipantau)';
-  document.getElementById('task-add-btn').style.display=mem?'none':'';
-  const done=TASKS.filter(t=>t.status==='done').length;
-  document.getElementById('tasks-sum').textContent=TASKS.length?`${done} dari ${TASKS.length} tugas selesai`:'Belum ada tugas.';
-  document.getElementById('tasks-tbody').innerHTML=TASKS.map(t=>{const late=t.due&&t.due<today&&t.status!=='done';return `<tr><td onclick="openTaskD('${t.id}')" style="cursor:pointer">${esc(mName(t.memberId))}</td><td onclick="openTaskD('${t.id}')" style="cursor:pointer"><b style="color:var(--brand)">${esc(t.title)}</b>${t.subAt?' <span class="badge-on">Dikirim</span>':''}${t.note?`<div style="font-size:12px;color:var(--ink-soft)">${esc(t.note)}</div>`:''}</td><td class="${late?'t-late':''}">${esc(t.due||'—')}${late?' ⚠':''}</td>
-  <td><select class="form-select" id="ts-${t.id}" onchange="taskUpd('${t.id}')">${Object.keys(ST).map(k=>`<option value="${k}" ${t.status===k?'selected':''}>${ST[k]}</option>`).join('')}</select></td>
-  <td><input type="range" min="0" max="100" step="5" value="${t.progress||0}" id="tp-${t.id}" style="width:100%" onchange="taskUpd('${t.id}')"><div class="t-bar"><i style="width:${t.progress||0}%"></i></div><small>${t.progress||0}%</small></td>
-  <td>${mem?'':`<button class="btn btn-ghost btn-sm" onclick="openTask('${t.id}')">Edit</button> <button class="btn btn-danger btn-sm" onclick="delTask('${t.id}')">Hapus</button>`}</td></tr>`;}).join('');
-}
-async function taskUpd(id){
-  const r=await api('task_update',{id,status:document.getElementById('ts-'+id).value,progress:document.getElementById('tp-'+id).value});
-  if(!r.ok) showToast(r.error,'error'); else showToast('Progress disimpan','success'); loadTasks();
-}
-function openTask(id){
-  const t=id&&TASKS.find(x=>String(x.id)===String(id)); window._taskId=t?t.id:null; const mine=myTeams();
-  document.getElementById('t-member').innerHTML=store.members.filter(m=>mine.includes(m.team)).map(m=>`<option value="${esc(m.id)}">${esc(m.nick||m.name)} (${esc(TN[m.team]||m.team)})</option>`).join('');
-  document.getElementById('t-member').value=t?t.memberId:document.getElementById('t-member').value;
-  document.getElementById('t-title').value=t?t.title:''; document.getElementById('t-due').value=t?t.due:''; document.getElementById('t-note').value=t?t.note:'';
-  openModal('modal-task');
-}
-async function saveTask(){
-  const r=await api('task_save',{id:window._taskId,memberId:document.getElementById('t-member').value,title:document.getElementById('t-title').value,due:document.getElementById('t-due').value,note:document.getElementById('t-note').value});
-  if(!r.ok) return showToast(r.error,'error'); closeModal('modal-task'); showToast('Tugas disimpan','success'); loadTasks();
-}
-async function delTask(id){ if(!confirm('Hapus tugas ini?')) return; const r=await api('task_del',{id}); if(!r.ok) return showToast(r.error,'error'); loadTasks(); }
 /* ===== TEGURAN ===== */
 function openNotice(u){ window._noticeTo=u; const a=USERS.find(x=>x.username===u); document.getElementById('n-to-name').textContent=(a&&a.name)||u; document.getElementById('n-text').value=''; openModal('modal-notice'); }
 async function sendNotice(){
@@ -1750,7 +1615,7 @@ async function sendNotice(){
 }
 let _notices=[];
 function afterLogin(r){
-  if(ME.role==='member') goPage('tasks');
+  if(ME.role==='member') goPage('profile');
   _notices=r.notices||[];
   if(_notices.length){ document.getElementById('inbox-body').innerHTML=_notices.map(n=>`<div style="padding:12px;border-left:3px solid var(--danger);background:var(--danger-soft);border-radius:8px;margin-bottom:10px;font-size:14px;"><b>${esc(n.from)}</b> · ${esc(n.date)}<div style="margin-top:6px;white-space:pre-wrap">${esc(n.text)}</div></div>`).join(''); openModal('modal-inbox'); }
 }
@@ -1762,27 +1627,6 @@ function userRoleUI(sel){
   document.getElementById('u-div-wrap').style.display=(ed||window._intraEd)?'':'none';
   document.getElementById('u-team-wrap').style.display=(ed||rl==='admin')?'none':'';
   el.innerHTML=store.members.map(m=>`<option value="${esc(m.id)}">${esc(m.nick||m.name)} (${esc(TN[m.team]||m.team)})</option>`).join(''); if(cur) el.value=cur;
-}
-
-function openTaskD(id){
-  const t=TASKS.find(x=>String(x.id)===String(id)); if(!t) return; window._taskD=t.id;
-  const mem=ME&&ME.role==='member', ok=/^https?:\/\//.test(t.subLink||'');
-  document.getElementById('taskd-body').innerHTML=`
-   <div style="font-size:17px;font-weight:700;margin-bottom:4px">${esc(t.title)}</div>
-   <div style="font-size:13px;color:var(--ink-soft);margin-bottom:12px">Untuk <b>${esc(mName(t.memberId))}</b> · dibuat ${esc(t.created||'—')} oleh ${esc(t.by||'—')} · tenggat ${esc(t.due||'—')}</div>
-   <div style="white-space:pre-wrap;margin-bottom:14px">${esc(t.note||'Tidak ada catatan dari manager.')}</div>
-   <div style="font-size:13px;font-weight:600">${ST[t.status]||''} · ${t.progress||0}%</div><div class="t-bar"><i style="width:${t.progress||0}%"></i></div>
-   <hr style="border:0;border-top:1px solid var(--line);margin:16px 0">
-   <div style="font-weight:700;margin-bottom:8px">Hasil / Submit${t.subAt?` <span class="badge-on">Dikirim ${esc(t.subAt)}</span>`:''}</div>
-   ${mem?`<textarea class="form-textarea" id="td-note" rows="4" placeholder="Catatan hasil kerja…">${esc(t.subNote||'')}</textarea><input class="form-input" id="td-link" style="margin-top:8px" placeholder="Link hasil (Drive, YouTube, dll) — opsional" value="${esc(t.subLink||'')}">`
-     :(t.subAt?`<div style="white-space:pre-wrap">${esc(t.subNote||'—')}</div>${ok?`<div style="margin-top:8px"><a href="${esc(t.subLink)}" target="_blank" rel="noopener noreferrer">${esc(t.subLink)}</a></div>`:''}`:'<div style="color:var(--ink-soft)">Belum ada submit dari member.</div>')}`;
-  document.getElementById('taskd-submit').style.display=mem?'':'none';
-  document.getElementById('taskd-submit').textContent=t.subAt?'Kirim Ulang':'Kirim Tugas';
-  openModal('modal-taskd');
-}
-async function submitTask(){
-  const r=await api('task_submit',{id:window._taskD,note:document.getElementById('td-note').value,link:document.getElementById('td-link').value});
-  if(!r.ok) return showToast(r.error,'error'); closeModal('modal-taskd'); showToast('Tugas terkirim ke manager','success'); loadTasks();
 }
 
 /* ===== PROFIL ===== */
