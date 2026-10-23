@@ -421,6 +421,7 @@
       <a href="#home" class="nav-link" data-page="home">Beranda</a>
 <a href="#jadwal" class="nav-link" data-page="jadwal">Jadwal Panggung</a>
 <a href="#news" class="nav-link" data-page="news">News</a>
+<a href="#vote" class="nav-link" data-page="vote">Vote</a>
 <div class="nav-item">
   <button type="button" class="nav-link dropdown-toggle" data-group="member">
     Member
@@ -848,6 +849,35 @@
   </div>
 </section>
 <!-- ================= SEMUA MEMBER ================= -->
+<section class="page" id="page-vote" data-title="Vote — MJC48">
+  <div class="team-hero"><div class="wrap team-hero-inner no-logo"><div>
+    <div class="crumb"><a href="#home">Beranda</a> &nbsp;/&nbsp; Vote</div>
+    <h1>Vote</h1><p class="desc">Selesaikan tugas untuk mendapatkan token, lalu pakai tokenmu untuk vote. 1 token = 1 suara.</p>
+  </div></div></div>
+  <div class="section"><div class="wrap" id="vt">
+    <div class="vt-box"><h3>1. Ajukan token</h3><p style="font-size:13px;color:var(--ink-soft);margin:0 0 12px">Kerjakan tugas, tekan Klaim, lalu tunggu admin menyetujui. Tokenmu muncul di sini setelah disetujui.</p>
+      <input id="vt-id" class="vt-in" placeholder="ID kamu (misal username IG)" maxlength="40" autocapitalize="none">
+      <div id="vt-tasks"></div></div>
+    <div class="vt-box"><h3>2. Vote</h3>
+      <input id="vt-code" class="vt-in" placeholder="VOTE-XXXX-XXXX" maxlength="20">
+      <div id="vt-cands"></div>
+      <button class="vt-btn" id="vt-go">Kirim Vote</button><p id="vt-msg"></p></div>
+  </div></div>
+</section>
+<style>
+#vt{display:grid;gap:20px;max-width:620px}
+.vt-box{border:1px solid var(--line);background:#fff;padding:22px}
+.vt-box h3{font-family:Fraunces,serif;margin:0 0 14px}
+.vt-in{width:100%;padding:11px 12px;border:1px solid var(--line);font:inherit;margin-bottom:12px;box-sizing:border-box}
+.vt-row{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid var(--line);flex-wrap:wrap}
+.vt-row a{color:var(--blue);font-size:13px}
+.vt-btn{background:var(--blue);color:#fff;border:0;padding:10px 16px;font:inherit;font-weight:600;cursor:pointer}
+.vt-btn.s{padding:7px 12px;font-size:13px}
+.vt-code{font-family:monospace;font-weight:700;letter-spacing:.05em}
+.vt-used{text-decoration:line-through;opacity:.5}
+.vt-c{display:block;padding:9px 0;cursor:pointer}
+#vt-msg{margin:12px 0 0;font-weight:600}
+</style>
 <section class="page locked" id="page-member" data-title="Semua Member — MJC48">
   <div class="coming-soon-block">
     <div class="coming-soon-inner">
@@ -953,7 +983,7 @@
 </footer>
 
 <script>
-  var pages = ['home','jadwal','news','news-detail','miii','jii','cii','trainee','member'];
+  var pages = ['home','jadwal','news','news-detail','vote','miii','jii','cii','trainee','member'];
 var newsData = [
   {
     tag: 'RECRUITMENT',
@@ -1183,5 +1213,53 @@ document.querySelectorAll('.dropdown-toggle').forEach(function(btn){
   setInterval(load,120000);
 })();
 </script>
-<div style="position:fixed;right:10px;bottom:6px;font-size:10px;opacity:.45;z-index:9999;pointer-events:none">v2026.10.21-8</div></body>
+<div style="position:fixed;right:10px;bottom:6px;font-size:10px;opacity:.45;z-index:9999;pointer-events:none">v2026.10.21-8</div><script>
+(function(){
+  if(!window.supabase) return;
+  var sb=window.supabase.createClient("https://kkdmlotknjsxmifblewy.supabase.co","sb_publishable_ki6C8vqsE--EFbHvjHMPbA_rEkmRKFs");
+  var $=function(i){return document.getElementById(i)};
+  var esc=function(t){return String(t==null?'':t).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
+  var tasks=[],mine={};
+  function msg(t,ok){var m=$('vt-msg');m.textContent=t;m.style.color=ok?'#1a7f37':'#c0392b'}
+  function drawTasks(){
+    $('vt-tasks').innerHTML=tasks.length?tasks.map(function(t){
+      var c=mine[t.id];
+      return '<div class="vt-row"><div><b>'+esc(t.name)+'</b>'+(/^https?:\/\//.test(t.link||'')?' <a href="'+esc(t.link)+'" target="_blank" rel="noopener">Buka ↗</a>':'')+'</div>'
+        +(c?(c.status==='approved'?'<span class="vt-code'+(c.used?' vt-used':'')+'">'+esc(c.code)+'</span>':'<span style="color:var(--ink-soft);font-size:13px">Menunggu persetujuan admin</span>'):'<button class="vt-btn s" data-t="'+t.id+'">Klaim</button>')+'</div>';
+    }).join(''):'<p style="color:var(--ink-soft)">Belum ada tugas.</p>';
+  }
+  async function loadMine(){
+    mine={};var v=$('vt-id').value.trim();if(v.length<3)return drawTasks();
+    var r=await sb.rpc('vote_mine',{p_voter:v});
+    (r.data||[]).forEach(function(x){var t=tasks.find(function(k){return k.name===x.task});if(t)mine[t.id]={code:x.code,used:x.used,status:x.status}});
+    drawTasks();
+  }
+  async function load(){
+    var a=await sb.from('vote_tasks').select('*').eq('active',true).order('id');
+    var b=await sb.from('vote_candidates').select('*').order('id');
+    tasks=a.data||[];drawTasks();
+    $('vt-cands').innerHTML=(b.data||[]).map(function(c){return '<label class="vt-c"><input type="radio" name="vt-c" value="'+c.id+'"> '+esc(c.name)+'</label>'}).join('')||'<p style="color:var(--ink-soft)">Belum ada pilihan.</p>';
+    try{var s=localStorage.getItem('vt-id');if(s&&!$('vt-id').value){$('vt-id').value=s;loadMine()}}catch(e){}
+  }
+  $('vt-id').addEventListener('change',function(){try{localStorage.setItem('vt-id',this.value.trim())}catch(e){}loadMine()});
+  $('vt-tasks').addEventListener('click',async function(e){
+    var b=e.target.closest('button[data-t]');if(!b)return;
+    var v=$('vt-id').value.trim();if(v.length<3){alert('Isi ID dulu (minimal 3 karakter)');return}
+    b.disabled=true;var r=await sb.rpc('vote_claim',{p_voter:v,p_task:Number(b.dataset.t)});
+    if(r.error){alert(r.error.message);b.disabled=false;return}
+    try{localStorage.setItem('vt-id',v)}catch(x){}
+    loadMine();
+  });
+  $('vt-go').addEventListener('click',async function(){
+    var c=document.querySelector('input[name=vt-c]:checked'),code=$('vt-code').value.trim();
+    if(!code)return msg('Isi token dulu');if(!c)return msg('Pilih salah satu dulu');
+    var r=await sb.rpc('vote_cast',{p_code:code,p_cand:Number(c.value)});
+    if(r.error)return msg(r.error.message);
+    msg('Vote terkirim. Terima kasih!',true);$('vt-code').value='';loadMine();
+  });
+  load();
+  window.addEventListener('hashchange',function(){if(location.hash==='#vote')load()});
+})();
+</script>
+</body>
 </html>
